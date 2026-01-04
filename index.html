@@ -28,7 +28,29 @@
     </nav>
   </header>
 
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
   <main class="main" role="main">
+    <!-- Login View -->
+    <section id="view-login" class="view" aria-label="Login">
+      <div class="login-wrap">
+        <h1 class="login-title">LoopRead Login</h1>
+        <p class="login-hint">Bitte einloggen, um LoopRead zu verwenden.</p>
+
+        <form id="loginForm" class="login-form" autocomplete="off">
+          <label class="login-label" for="loginEmail">E-Mail</label>
+          <input id="loginEmail" class="input" type="email" inputmode="email" autocomplete="username" required />
+
+          <label class="login-label" for="loginPassword">Passwort</label>
+          <input id="loginPassword" class="input" type="password" autocomplete="current-password" required />
+
+          <button id="btnLogin" class="btn" type="submit">Einloggen</button>
+        </form>
+
+        <div class="login-footnote">Kein Konto? Bitte in Firebase anlegen (nur Admin).</div>
+      </div>
+    </section>
+
     <!-- Reader View -->
     <section id="view-reader" class="view view-active" aria-label="Lesen">
       <div id="blocksContainer" class="blocks" aria-live="polite"></div>
@@ -65,12 +87,17 @@
 
       <button id="menuLoadSample" class="drawer-item" type="button">Probedaten laden</button>
       <button id="menuClearAll" class="drawer-item danger" type="button">Alle Daten löschen</button>
+      <button id="menuLogout" class="drawer-item" type="button">Logout</button>
 
       <div class="drawer-footnote">
         Daten werden lokal im Browser gespeichert (localStorage).
       </div>
     </div>
   </aside>
+
+  <!-- Firebase (Auth only, no registration) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 
   <script src="app.js"></script>
 </body>

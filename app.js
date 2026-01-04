@@ -26,21 +26,87 @@
     addForm: document.getElementById('addForm'),
     editors: document.getElementById('editors'),
     btnCancel: document.getElementById('btnCancel'),
+
+    toast: document.getElementById('toast'),
+
+    viewLogin: document.getElementById('view-login'),
+    loginForm: document.getElementById('loginForm'),
+    loginEmail: document.getElementById('loginEmail'),
+    loginPassword: document.getElementById('loginPassword'),
+    btnLogin: document.getElementById('btnLogin'),
+
+    menuLogout: document.getElementById('menuLogout'),
   };
 
   /** @type {{collections: Array<Array<{title:string, content:string}>>, currentIndex:number}} */
   const state = {
     collections: [],
     currentIndex: 0,
+    menuOpen: false,
+    uid: null,
   };
 
-  function safeParse(jsonStr, fallback) {
+  
+  // --- Toast (kein alert/confirm für Fehlermeldungen) ---
+  let toastTimer = null;
+  function showToast(message) {
+    if (!els.toast) return;
+    els.toast.textContent = String(message || '').trim();
+    els.toast.hidden = false;
+
+    if (toastTimer) window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => {
+      els.toast.hidden = true;
+    }, 3200);
+  }
+
+  // --- Firebase Auth (Login only) ---
+  // WICHTIG: Trage hier deine Firebase Web-App Konfiguration ein.
+  // Du findest sie in der Firebase Console (Project settings -> Your apps -> Web app).
+  const firebaseConfig = {
+    apiKey: "AIzaSyBdyurJosE1H9iG6Inde7ptCb-aRBl6Hks",
+    authDomain: "my-hobby-apps.firebaseapp.com",
+    projectId: "my-hobby-apps",
+    storageBucket: "my-hobby-apps.firebasestorage.app",
+    messagingSenderId: "894079667150",
+    appId: "1:894079667150:web:a63294d5a61097a17ef99f"
+  };
+
+  let firebaseReady = false;
+  function initFirebase() {
+    if (typeof window.firebase === 'undefined' || !window.firebase?.initializeApp) {
+      showToast('Firebase SDK nicht geladen.');
+      return;
+    }
+    const looksPlaceholder = Object.values(firebaseConfig).some(v => String(v).includes('YOUR_'));
+    if (looksPlaceholder) {
+      // App bleibt auf Login-Screen, bis Konfiguration eingesetzt ist.
+      showToast('Firebase-Konfiguration fehlt (app.js: firebaseConfig).');
+      return;
+    }
+    try {
+      if (!firebase.apps || firebase.apps.length === 0) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      firebaseReady = true;
+    } catch (e) {
+      showToast('Firebase init fehlgeschlagen.');
+      firebaseReady = false;
+    }
+  }
+
+  function storageKey(baseKey) {
+    const uid = state.uid || 'anon';
+    return `${baseKey}_${uid}`;
+  }
+
+function safeParse(jsonStr, fallback) {
     try { return JSON.parse(jsonStr); } catch { return fallback; }
   }
 
   function loadState() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const idxRaw = localStorage.getItem(STORAGE_INDEX_KEY);
+    const raw = localStorage.getItem(storageKey(STORAGE_KEY));
+    const idxRaw = localStorage.getItem(storageKey(STORAGE_INDEX_KEY));
 
     if (raw) {
       const parsed = safeParse(raw, null);
@@ -58,8 +124,8 @@
   }
 
   function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ collections: state.collections }));
-    localStorage.setItem(STORAGE_INDEX_KEY, String(state.currentIndex));
+    localStorage.setItem(storageKey(STORAGE_KEY), JSON.stringify({ collections: state.collections }));
+    localStorage.setItem(storageKey(STORAGE_INDEX_KEY), String(state.currentIndex));
   }
 
   function clampIndex() {
@@ -72,7 +138,28 @@
     if (state.currentIndex >= n) state.currentIndex = n - 1;
   }
 
-  function setView(view) {
+  
+  function setAuthLocked(isLocked) {
+    document.body.classList.toggle('auth-locked', isLocked);
+
+    // Views: only login when locked; otherwise reader/add as controlled elsewhere
+    els.viewLogin.classList.toggle('view-active', isLocked);
+    if (isLocked) {
+      els.viewReader.classList.remove('view-active');
+      els.viewAdd.classList.remove('view-active');
+    }
+  }
+
+  function resetInMemoryState() {
+    state.collections = [];
+    state.currentIndex = 0;
+  }
+
+function setView(view) {
+    if (!state.uid) {
+      setAuthLocked(true);
+      return;
+    }
     const isReader = view === 'reader';
     els.viewReader.classList.toggle('view-active', isReader);
     els.viewAdd.classList.toggle('view-active', !isReader);
@@ -149,6 +236,7 @@
   }
 
   function gotoNext() {
+    if (!state.uid) return;
     const n = state.collections.length;
     if (n === 0) return;
     state.currentIndex = (state.currentIndex + 1) % n;
@@ -159,6 +247,7 @@
   }
 
   function gotoPrev() {
+    if (!state.uid) return;
     const n = state.collections.length;
     if (n === 0) return;
     state.currentIndex = (state.currentIndex - 1 + n) % n;
@@ -175,17 +264,22 @@
 
   /* Drawer */
   function openMenu() {
+    if (!state.uid) { return; }
+    state.menuOpen = true;
     els.menuOverlay.hidden = false;
     els.menuDrawer.classList.add('open');
     els.menuDrawer.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
     // trap focus lightly
     els.menuToReader.focus();
   }
 
   function closeMenu() {
+    state.menuOpen = false;
     els.menuDrawer.classList.remove('open');
     els.menuDrawer.setAttribute('aria-hidden', 'true');
     els.menuOverlay.hidden = true;
+    document.body.style.overflow = '';
     els.btnMenu.focus();
   }
 
@@ -251,16 +345,32 @@
   }
 
   function saveNewCollection() {
-    const values = getEditorValues()
-      .map(v => ({ title: v.title.trim(), content: v.content.trim() }))
-      .filter(v => v.title.length > 0 && v.content.length > 0);
+    const values = getEditorValues().map(v => ({
+      title: (v.title || '').trim(),
+      content: (v.content || '').trim(),
+    }));
 
-    if (values.length === 0) {
-      alert('Bitte mindestens einen Textblock mit Titel und Inhalt ausfüllen.');
+    // Validierung: wenn Titel ODER Inhalt ausgefüllt ist, müssen beide ausgefüllt sein
+    for (let i = 0; i < values.length; i++) {
+      const t = values[i].title;
+      const c = values[i].content;
+      const any = (t.length > 0) || (c.length > 0);
+      const both = (t.length > 0) && (c.length > 0);
+
+      if (any && !both) {
+        showToast(`Textblock ${i + 1}: Bitte Titel und Inhalt ausfüllen.`);
+        return;
+      }
+    }
+
+    const complete = values.filter(v => v.title.length > 0 && v.content.length > 0);
+
+    if (complete.length === 0) {
+      showToast('Bitte mindestens einen Textblock vollständig ausfüllen.');
       return;
     }
 
-    state.collections.push(values);
+    state.collections.push(complete);
     state.currentIndex = state.collections.length - 1;
     saveState();
     renderNav();
@@ -331,6 +441,8 @@
 
     const onStart = (e) => {
       if (!els.viewReader.classList.contains('view-active')) return;
+      if (state.menuOpen) return;
+      if (state.menuOpen) return;
       const touch = (e.touches && e.touches[0]) ? e.touches[0] : e;
       startX = touch.clientX;
       startY = touch.clientY;
@@ -401,6 +513,29 @@
       saveNewCollection();
     });
 
+    els.loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!firebaseReady) {
+        showToast('Firebase-Konfiguration fehlt oder SDK nicht geladen.');
+        return;
+      }
+      const email = (els.loginEmail.value || '').trim();
+      const password = (els.loginPassword.value || '');
+      if (!email || !password) {
+        showToast('Bitte E-Mail und Passwort eingeben.');
+        return;
+      }
+      try {
+        els.btnLogin.disabled = true;
+        await firebase.auth().signInWithEmailAndPassword(email, password);
+      } catch (err) {
+        const msg = (err && err.message) ? err.message : 'Login fehlgeschlagen.';
+        showToast(msg);
+      } finally {
+        els.btnLogin.disabled = false;
+      }
+    });
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         // Close menu or leave add view
@@ -415,12 +550,37 @@
   }
 
   function init() {
-    loadState();
-    renderNav();
-    renderBlocks();
+    initFirebase();
     wireEvents();
     installSwipe();
-    setView('reader');
+
+    // Default: locked until auth says otherwise
+    setAuthLocked(true);
+
+    if (firebaseReady) {
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user && user.uid) {
+          state.uid = user.uid;
+          setAuthLocked(false);
+          loadState();
+          renderNav();
+          renderBlocks();
+          setView('reader');
+        } else {
+          // Logout / not logged in
+          state.uid = null;
+          resetInMemoryState();
+          renderNav();
+          renderBlocks();
+          setAuthLocked(true);
+          // Ensure menu closed
+          try { closeMenu(); } catch {}
+        }
+      });
+    } else {
+      // Kein Firebase: Login-Screen bleibt sichtbar
+      setAuthLocked(true);
+    }
   }
 
   init();

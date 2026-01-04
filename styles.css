@@ -3,6 +3,8 @@
   --fg: #000;
   --bg: #fff;
   --line: #000;
+  --panel: #f2f2f2;
+  --btn: #e0e0e0;
   --pad: 8px;
   --tap: 34px;
 }
@@ -24,7 +26,7 @@ body{
   left: 0;
   right: 0;
   z-index: 50;
-  background: var(--bg);
+  background: var(--panel);
   border-top: 1px solid var(--line);
   /* iOS safe area */
   padding-bottom: env(safe-area-inset-bottom);
@@ -33,12 +35,13 @@ body{
 .nav{
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 6px var(--pad);
 }
 
 .nav-center{
-  flex: 1;
+  flex: 0;
   display: flex;
   justify-content: center;
 }
@@ -54,7 +57,7 @@ body{
   height: var(--tap);
   padding: 0 10px;
   border: 1px solid var(--line);
-  background: transparent;
+  background: var(--btn);
   color: var(--fg);
   font-size: 16px;
   line-height: 1;
@@ -102,10 +105,7 @@ body{
 }
 
 /* Titel-Box hängt an der Linie (Linie ist Oberkante) */
-.block-title-box{
-  position: relative;
-  display: inline-block;
-  font-size: 12px;
+Ipx;
   font-weight: 600;
   padding: 4px 10px 3px 10px;
   margin: 0;
@@ -173,7 +173,7 @@ body{
 .input, .textarea{
   width: 100%;
   border: 1px solid var(--line);
-  background: transparent;
+  background: var(--bg);
   color: var(--fg);
   padding: 8px;
   font-size: 14px;
@@ -206,14 +206,14 @@ body{
   flex: 1;
   height: 40px;
   border: 1px solid var(--line);
-  background: var(--fg);
-  color: var(--bg);
+  background: var(--btn);
+  color: var(--fg);
   cursor: pointer;
   font-size: 14px;
 }
 
 .btn-ghost{
-  background: transparent;
+  background: var(--btn);
   color: var(--fg);
 }
 
@@ -235,7 +235,7 @@ body{
   right: 0;
   height: 100%;
   width: min(280px, 80vw);
-  background: var(--bg);
+  background: var(--panel);
   border-left: 1px solid var(--line);
   transform: translateX(100%);
   transition: transform 160ms ease-out;
@@ -263,7 +263,7 @@ body{
 .drawer-item{
   height: 40px;
   border: 1px solid var(--line);
-  background: transparent;
+  background: var(--btn);
   color: var(--fg);
   cursor: pointer;
   font-size: 14px;
@@ -296,4 +296,71 @@ body{
   .block-content{ font-size: 19px; }
   .nav{ padding-left: 12px; padding-right: 12px; }
   :root{ --pad: 12px; }
+}
+
+/* First text block content larger */
+.block:first-of-type .block-content{
+  font-size: 21px;
+}
+
+@media (min-width: 700px){
+  .block:first-of-type .block-content{ font-size: 22px; }
+}
+
+/* Toast (oben) */
+.toast{
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(520px, calc(100vw - 16px));
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  font-size: 13px;
+  z-index: 120;
+}
+
+/* Login view */
+.login-wrap{
+  padding: 18px var(--pad) 24px var(--pad);
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.login-title{
+  margin: 0 0 8px 0;
+  font-size: 16px;
+}
+
+.login-hint{
+  margin: 0 0 14px 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.login-form{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.login-label{
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.login-footnote{
+  margin-top: 14px;
+  font-size: 11px;
+  line-height: 1.3;
+  opacity: 0.9;
+}
+
+/* Auth lock: hide app chrome when not logged in */
+body.auth-locked .topbar,
+body.auth-locked .drawer,
+body.auth-locked .overlay{
+  display: none !important;
 }

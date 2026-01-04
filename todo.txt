@@ -15,7 +15,17 @@ Ich möchte, dass du die nachfolgend beschriebenen Änderungen am bestehenden Co
 Änderungen:
 
 
+import option im burgermenü. dann kann man eine excelldatei hochladen. dabei ist immer eine zeile eine blocksammlung und jede spalte darin ein textblock. ausser die erste zeile die zeigt an was die titel der textblöcke sind. demensprechend sind alle titel des ersten textblockes gleich im ganzen import. verstehst du?
 
 
 
+Kein Konto? Bitte in Firebase anlegen (nur Admin).
+diesen schriftzug entfernen. auch andere fehlermeldungen die verraten, das das backend firebase ist
 
+ich hann mich nicht ausloggen
+
+die meldung bei probedaten laden soll in der app angezeigt werden als kästchen nicht also so ein alert
+
+text in den textblächen soll times new roman sein
+
+mach wieder vierecke um die titel!

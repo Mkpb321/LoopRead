@@ -23,6 +23,15 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
+  <div id="confirmOverlay" class="confirm-overlay" hidden></div>
+  <div id="confirmBox" class="confirm-box" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="confirm-actions">
+      <button id="confirmCancel" class="btn btn-ghost" type="button">Abbrechen</button>
+      <button id="confirmOk" class="btn" type="button">OK</button>
+    </div>
+  </div>
+
   <main class="main" role="main">
     <!-- Login View -->
     <section id="view-login" class="view" aria-label="Login">
@@ -39,9 +48,7 @@
 
           <button id="btnLogin" class="btn" type="submit">Einloggen</button>
         </form>
-
-        <div class="login-footnote">Keine Registrierung in der App. Nutzer werden in Firebase (Admin) angelegt.</div>
-      </div>
+</div>
     </section>
 
     <!-- Reader View -->
@@ -117,11 +124,7 @@
       <button id="menuLoadSample" class="drawer-item" type="button">Probedaten laden</button>
       <button id="menuClearAll" class="drawer-item danger" type="button">Alle Daten löschen</button>
       <button id="menuLogout" class="drawer-item" type="button">Logout</button>
-
-      <div class="drawer-footnote">
-        Daten werden lokal im Browser gespeichert (localStorage) – getrennt pro Firebase-User.
-      </div>
-    </div>
+</div>
   </aside>
 
   <!-- Firebase (Auth only) -->

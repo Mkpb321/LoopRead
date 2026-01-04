@@ -39,6 +39,12 @@
 
     toast: document.getElementById('toast'),
 
+    confirmOverlay: document.getElementById('confirmOverlay'),
+    confirmBox: document.getElementById('confirmBox'),
+    confirmMsg: document.getElementById('confirmMsg'),
+    confirmCancel: document.getElementById('confirmCancel'),
+    confirmOk: document.getElementById('confirmOk'),
+
     loginForm: document.getElementById('loginForm'),
     loginEmail: document.getElementById('loginEmail'),
     loginPassword: document.getElementById('loginPassword'),
@@ -50,6 +56,7 @@
     collections: [],
     currentIndex: 0,
     menuOpen: false,
+    confirmOpen: false,
     uid: null,
   };
 
@@ -66,6 +73,88 @@
     toastTimer = window.setTimeout(() => {
       els.toast.hidden = true;
     }, 3400);
+  }
+
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (ch) => {
+      switch (ch) {
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#39;';
+        default: return ch;
+      }
+    });
+  }
+
+  // **bold** rendering (safe)
+  function formatContent(raw) {
+    const s = String(raw ?? '');
+    let out = '';
+    let i = 0;
+
+    while (i < s.length) {
+      const start = s.indexOf('**', i);
+      if (start === -1) {
+        out += escapeHtml(s.slice(i));
+        break;
+      }
+      const end = s.indexOf('**', start + 2);
+      if (end === -1) {
+        out += escapeHtml(s.slice(i));
+        break;
+      }
+      out += escapeHtml(s.slice(i, start));
+      out += '<strong>' + escapeHtml(s.slice(start + 2, end)) + '</strong>';
+      i = end + 2;
+    }
+
+    return out;
+  }
+
+  // In-App Confirm (statt window.confirm)
+  let confirmResolver = null;
+  function showConfirm(message, okText = 'OK', cancelText = 'Abbrechen') {
+    return new Promise((resolve) => {
+      if (!els.confirmBox || !els.confirmOverlay) {
+        resolve(false);
+        return;
+      }
+
+      state.confirmOpen = true;
+      confirmResolver = resolve;
+
+      els.confirmMsg.textContent = String(message || '').trim();
+      els.confirmOk.textContent = okText;
+      els.confirmCancel.textContent = cancelText;
+
+      els.confirmOverlay.hidden = false;
+      els.confirmBox.classList.add('open');
+      els.confirmBox.setAttribute('aria-hidden', 'false');
+
+      // block background interactions
+      document.body.style.overflow = 'hidden';
+
+      els.confirmCancel.focus();
+    });
+  }
+
+  function closeConfirm(result) {
+    state.confirmOpen = false;
+
+    if (els.confirmOverlay) els.confirmOverlay.hidden = true;
+    if (els.confirmBox) {
+      els.confirmBox.classList.remove('open');
+      els.confirmBox.setAttribute('aria-hidden', 'true');
+    }
+
+    // restore scroll only if menu is not open
+    if (!state.menuOpen) if (!state.confirmOpen) document.body.style.overflow = '';
+    const r = confirmResolver;
+    confirmResolver = null;
+    if (typeof r === 'function') r(!!result);
   }
 
   function safeParse(jsonStr, fallback) {
@@ -194,9 +283,7 @@
 
       const content = document.createElement('div');
       content.className = 'block-content';
-      content.textContent = (b.content || '').trim();
-
-      article.appendChild(sep);
+      content.innerHTML = formatContent((b.content || '').trim());article.appendChild(sep);
       article.appendChild(content);
 
       els.blocksContainer.appendChild(article);
@@ -368,8 +455,8 @@
     ];
   }
 
-  function loadSamples() {
-    const ok = confirm('Probedaten laden? Dabei werden deine aktuellen Daten gelöscht.');
+  async function loadSamples() {
+    const ok = await showConfirm('Probedaten laden? Dabei werden deine aktuellen Daten gelöscht.', 'Laden', 'Abbrechen');
     if (!ok) return;
 
     state.collections = sampleCollections();
@@ -382,8 +469,8 @@
     scrollTop();
   }
 
-  function clearAll() {
-    const ok = confirm('Alle Daten wirklich löschen?');
+  async function clearAll() {
+    const ok = await showConfirm('Alle Daten wirklich löschen?', 'Löschen', 'Abbrechen');
     if (!ok) return;
 
     state.collections = [];
@@ -405,7 +492,7 @@
 
     const onStart = (e) => {
       if (!els.viewReader.classList.contains('view-active')) return;
-      if (state.menuOpen) return;
+      if (state.menuOpen || state.confirmOpen) return;
       const touch = (e.touches && e.touches[0]) ? e.touches[0] : e;
       startX = touch.clientX;
       startY = touch.clientY;
@@ -414,7 +501,7 @@
 
     const onEnd = (e) => {
       if (!els.viewReader.classList.contains('view-active')) return;
-      if (state.menuOpen) return;
+      if (state.menuOpen || state.confirmOpen) return;
       const touch = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : e;
       const distX = touch.clientX - startX;
       const distY = touch.clientY - startY;
@@ -606,13 +693,13 @@
 
   function initFirebase() {
     if (typeof window.firebase === 'undefined' || !window.firebase?.initializeApp) {
-      showToast('Firebase SDK nicht geladen.');
+      showToast('Anmeldung derzeit nicht verfügbar.');
       return;
     }
     const looksPlaceholder = Object.values(firebaseConfig).some(v => String(v).includes('YOUR_'));
     if (looksPlaceholder) {
       // App bleibt auf Login-Screen, bis Konfiguration eingesetzt ist.
-      showToast('Firebase-Konfiguration fehlt (app.js: firebaseConfig).');
+      showToast('Anmeldung ist nicht konfiguriert.');
       return;
     }
     try {
@@ -620,7 +707,7 @@
       firebaseReady = true;
     } catch (e) {
       firebaseReady = false;
-      showToast('Firebase init fehlgeschlagen.');
+      showToast('Anmeldung konnte nicht initialisiert werden.');
     }
   }
 
@@ -631,6 +718,11 @@
     els.btnMenu.addEventListener('click', openMenu);
     els.menuOverlay.addEventListener('click', closeMenu);
 
+    // Confirm modal
+    els.confirmOverlay.addEventListener('click', () => closeConfirm(false));
+    els.confirmCancel.addEventListener('click', () => closeConfirm(false));
+    els.confirmOk.addEventListener('click', () => closeConfirm(true));
+
     els.menuToReader.addEventListener('click', () => { setView('reader'); closeMenu(); });
     els.menuToAdd.addEventListener('click', () => { setView('add'); closeMenu(); });
     els.menuToImport.addEventListener('click', () => { setView('import'); closeMenu(); });
@@ -639,7 +731,7 @@
     els.menuClearAll.addEventListener('click', clearAll);
 
     els.menuLogout.addEventListener('click', () => {
-      if (!firebaseReady) { showToast('Firebase nicht bereit.'); return; }
+      if (!firebaseReady) { showToast('Logout derzeit nicht verfügbar.'); return; }
       firebase.auth().signOut();
     });
 
@@ -664,7 +756,7 @@
 
     els.loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!firebaseReady) { showToast('Firebase-Konfiguration fehlt oder SDK nicht geladen.'); return; }
+      if (!firebaseReady) { showToast('Anmeldung derzeit nicht verfügbar.'); return; }
       const email = (els.loginEmail.value || '').trim();
       const password = (els.loginPassword.value || '');
       if (!email || !password) { showToast('Bitte E-Mail und Passwort eingeben.'); return; }
@@ -681,6 +773,7 @@
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        if (state.confirmOpen) { closeConfirm(false); return; }
         if (!els.menuOverlay.hidden) closeMenu();
       }
       if (els.viewReader.classList.contains('view-active') && !state.menuOpen) {

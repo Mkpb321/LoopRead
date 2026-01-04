@@ -125,7 +125,8 @@ body{
 
 /* First text block content larger */
 .blocks .block:first-of-type .block-content{
-  font-size: 21px;
+  font-size: 22px;
+  line-height: 1.65;
 }
 
 .empty{
@@ -316,7 +317,41 @@ body.auth-locked .overlay{
 /* Slightly larger text on wider screens */
 @media (min-width: 700px){
   .block-content{ font-size: 19px; }
-  .blocks .block:first-of-type .block-content{ font-size: 22px; }
+  .blocks .block:first-of-type .block-content{ font-size: 23px; line-height: 1.65; }
   .nav{ padding-left: 12px; padding-right: 12px; }
   :root{ --pad: 12px; }
+}
+
+/* In-App Confirm (statt browser confirm/alert) */
+.confirm-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.08);
+  z-index: 130;
+}
+
+.confirm-box{
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 16px));
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 12px;
+  z-index: 140;
+  display: none;
+}
+
+.confirm-box.open{ display: block; }
+
+.confirm-msg{
+  font-size: 13px;
+  line-height: 1.35;
+  margin-bottom: 10px;
+}
+
+.confirm-actions{
+  display: flex;
+  gap: 8px;
 }

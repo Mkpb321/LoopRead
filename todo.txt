@@ -1,16 +1,15 @@
-flexible anzahl und titel der kästchen
-scrollen muss man halt wenn zuviel
-am ende loopt es wieder an den anfang und merkt sich wo man war
 notizen kann man hinzufügen und anstreichen und toggeln ob man anstreichen sieht
 guter import
 ev wörter an analyse binden, koppeln
-firebase speicher
+    dann wäre eine carflipflip ansicht möglich
+firebase speicher (erst wenn daten schema fix)
+firebase login
 link zum chatgt chat vielleicht auch gleich
-weiterknöpfe unten
 
 
-gpt:
-Eine sprachneutrale, smartphone-optimierte Lese-App zum Sprachenlernen, die auf häufigem, ruhigem Wiederlesen basiert.
-Es wird immer genau ein Textabschnitt pro Bildschirm angezeigt, sodass alles Relevante ohne Scrollen sichtbar ist oder gezielt ein- und ausgeblendet werden kann.
-Das UI ist extrem reduziert (schwarz-weiß, textzentriert) und vermeidet Header, Footer und Ablenkung.
-Inhalte sollen leicht erweiterbar und veränderbar sein, ohne PDFs neu zu erstellen oder Dateien neu zu verteilen; die App ersetzt damit den statischen PDF-Workflow.
+
+
+
+Ich möchte, dass du die nachfolgend beschriebenen Änderungen am bestehenden Code vornimmst. Der vollständige Quellcode der Anwendung ist bereits beigefügt. Bitte implementiere alle Änderungen korrekt und konsistent und gib mir anschließend sämtliche Dateien vollständig als ZIP-Download zurück. Zusätzlich erwarte ich eine prägnante, einzeilige Commit-Message sowie eine nachvollziehbare Erklärung der vorgenommenen Änderungen. Ich werde dir danach weitere Änderungen schicken. Die sollst du immer am aktuellsten code vornehmen. Also dem letzten, dem du mir geschickt hast. und jeweils wieder sämtliche Dateien vollständig als ZIP-Download zurück geben.
+
+Änderungen:

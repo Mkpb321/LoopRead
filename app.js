@@ -127,24 +127,24 @@
       const article = document.createElement('article');
       article.className = 'block';
 
-      const title = document.createElement('div');
-      title.className = 'block-title';
-      title.textContent = (b.title || '').trim() || `Block ${i + 1}`;
+      // Kopf: Titelbox + Trennlinie (Unterkante ist die Trennlinie)
+      const head = document.createElement('div');
+      head.className = 'block-head';
+
+      const titleBox = document.createElement('div');
+      titleBox.className = 'block-title-box';
+      titleBox.textContent = (b.title || '').trim() || `Block ${i + 1}`;
+
+      head.appendChild(titleBox);
 
       const content = document.createElement('div');
       content.className = 'block-content';
       content.textContent = (b.content || '').trim();
 
-      article.appendChild(title);
+      article.appendChild(head);
       article.appendChild(content);
 
       els.blocksContainer.appendChild(article);
-
-      if (i !== blocks.length - 1) {
-        const hr = document.createElement('hr');
-        hr.className = 'sep';
-        els.blocksContainer.appendChild(hr);
-      }
     });
   }
 

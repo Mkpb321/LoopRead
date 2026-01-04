@@ -127,21 +127,21 @@
       const article = document.createElement('article');
       article.className = 'block';
 
-      // Kopf: Titelbox + Trennlinie (Unterkante ist die Trennlinie)
-      const head = document.createElement('div');
-      head.className = 'block-head';
+      // Trennlinie (oben) über den ganzen Screen + Titelbox hängt unten an der Linie
+      const sep = document.createElement('div');
+      sep.className = 'block-sep';
 
       const titleBox = document.createElement('div');
       titleBox.className = 'block-title-box';
       titleBox.textContent = (b.title || '').trim() || `Block ${i + 1}`;
 
-      head.appendChild(titleBox);
+      sep.appendChild(titleBox);
 
       const content = document.createElement('div');
       content.className = 'block-content';
       content.textContent = (b.content || '').trim();
 
-      article.appendChild(head);
+      article.appendChild(sep);
       article.appendChild(content);
 
       els.blocksContainer.appendChild(article);

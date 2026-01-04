@@ -84,22 +84,36 @@ body{
   padding: 0;
 }
 
-.block-head{
-  border-bottom: 0;
-  padding: 8px 0 0 0;
+.block-sep{
+  position: relative;
+  /* 1px Abstand, damit die Linie NICHT hinter der Titelbox verschwindet */
+  padding-top: 1px;
 }
 
+/* Trennlinie über den ganzen Bildschirm */
+.block-sep::before{
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  border-top: 1px solid var(--line);
+}
+
+/* Titel-Box hängt an der Linie (Linie ist Oberkante) */
 .block-title-box{
+  position: relative;
   display: inline-block;
   font-size: 12px;
   font-weight: 600;
   padding: 4px 10px 3px 10px;
   margin: 0;
-  border: 1px solid var(--line);
-  border-bottom: 0; /* Unterkante ist die Trennlinie */
   background: var(--bg);
-  /* bündig am Screen-Rand */
-  margin-left: 0;
+  border: 1px solid var(--line);
+  border-top: 0; /* Oberkante = Trennlinie */
+  /* bündig am Screen-Rand, auch bei max-width Layout */
+  margin-left: calc(50% - 50vw);
 }
 
 .block-content{

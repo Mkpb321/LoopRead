@@ -2,157 +2,76 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Joh 2 – Ansatz 1: Accordion</title>
-  <style>
-    /* Minimal, schwarz/weiß, mobile-first */
-    :root {
-      --pad: 10px;
-      --gap: 8px;
-      --line: 1px solid #000;
-      --muted: #111;
-      --fz: 15px;
-      --fzSmall: 13px;
-    }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      font-size: var(--fz);
-      line-height: 1.25;
-      color: #000;
-      background: #fff;
-      -webkit-text-size-adjust: 100%;
-    }
-    button, input, select, summary { font: inherit; color: inherit; }
-    .app {
-      height: 100vh;
-      height: 100svh;
-      padding: var(--pad);
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      gap: var(--gap);
-      overflow: hidden; /* wichtig: kein Scrollen */
-    }
-    .top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      min-height: 28px;
-    }
-    .navbtn {
-      border: var(--line);
-      background: #fff;
-      padding: 2px 8px;
-      border-radius: 6px;
-    }
-    .ref {
-      font-weight: 600;
-      letter-spacing: .2px;
-      white-space: nowrap;
-    }
-    .tiny {
-      font-size: var(--fzSmall);
-      color: var(--muted);
-    }
-    .divider { border-top: var(--line); opacity: 1; }
-    
-  details.blk { border: var(--line); border-radius: 8px; padding: 4px 6px; }
-  summary { cursor: pointer; display: flex; align-items: baseline; gap: 8px; list-style: none; }
-  summary::-webkit-details-marker { display:none; }
-  .tag { font-weight: 600; white-space: nowrap; }
-  .pv { font-size: var(--fzSmall); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-  .txt { padding: 4px 2px 2px; }
-
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>LoopRead</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  
-<div class="app" id="app">
-  <div class="top">
-    <button class="navbtn" id="prev" aria-label="Vorheriger Vers">‹</button>
-    <div class="ref" id="ref">–</div>
-    <button class="navbtn" id="next" aria-label="Nächster Vers">›</button>
-  </div>
+  <header class="topbar" role="banner">
+    <nav class="nav" aria-label="Blocksammlungen Navigation">
+      <button id="btnPrev" class="icon-btn" type="button" aria-label="Zurück">
+        ‹
+      </button>
 
-  <div class="divider"></div>
+      <div class="nav-center" aria-live="polite">
+        <span id="navIndex" class="nav-index">0/0</span>
+      </div>
 
-  <details class="blk" id="dGreek" open>
-    <summary><span class="tag">Griechisch</span><span class="pv" id="pvGreek"></span></summary>
-    <div class="txt" id="greek"></div>
-  </details>
+      <button id="btnNext" class="icon-btn" type="button" aria-label="Weiter">
+        ›
+      </button>
 
-  <details class="blk" id="dLit" open>
-    <summary><span class="tag">Wörtlich</span><span class="pv" id="pvLit"></span></summary>
-    <div class="txt" id="literal"></div>
-  </details>
+      <button id="btnMenu" class="icon-btn" type="button" aria-label="Menü öffnen" aria-haspopup="true" aria-controls="menuDrawer">
+        ☰
+      </button>
+    </nav>
+  </header>
 
-  <details class="blk" id="dExt">
-    <summary><span class="tag">Freier Satz</span><span class="pv" id="pvExt"></span></summary>
-    <div class="txt" id="extreme"></div>
-  </details>
+  <main class="main" role="main">
+    <!-- Reader View -->
+    <section id="view-reader" class="view view-active" aria-label="Lesen">
+      <div id="blocksContainer" class="blocks" aria-live="polite"></div>
+    </section>
 
-  <details class="blk" id="dNotes">
-    <summary><span class="tag">Analyse/Notizen</span><span class="pv" id="pvNotes"></span></summary>
-    <div class="txt tiny" id="notes"></div>
-    <div class="txt tiny" id="vocab"></div>
-  </details>
+    <!-- Add Collection View -->
+    <section id="view-add" class="view" aria-label="Neue Blocksammlung">
+      <div class="add-header">
+        <h1 class="add-title">Neue Blocksammlung</h1>
+        <p class="add-hint">Fülle Titel und Inhalt pro Textblock aus. Sobald alle sichtbaren Felder ausgefüllt sind, erscheint automatisch ein weiterer Block.</p>
+      </div>
 
-  <div class="tiny" id="hint">Tip: Tippe auf eine Zeile, um ein-/auszuklappen. Kein Scrollen: Inhalte sind kurz gehalten.</div>
-</div>
+      <form id="addForm" class="add-form" autocomplete="off">
+        <div id="editors" class="editors"></div>
 
-  <script>
-    const DATA = [{"ref": "Joh 2,1", "greek": "Καὶ τῇ ἡμέρᾳ τῇ τρίτῃ γάμος ἐγένετο ἐν Κανᾷ τῆς Γαλιλαίας· καὶ ἦν ἡ μήτηρ τοῦ Ἰησοῦ ἐκεῖ.", "literal": "Und am dritten Tag geschah eine Hochzeit in Kana in Galiläa; und die Mutter Jesu war dort.", "extreme": "Drei Tage später: Hochzeit in Kana. Maria ist schon da.", "notes": "Setting/Ort. Maria wird eingeführt. „Dritter Tag“ kann literarisch den Übergang markieren.", "vocab": "γάμος=Hochzeit; Κανᾷ=Kana; Γαλιλαίας=Galiläa; μήτηρ=Mutter"}, {"ref": "Joh 2,2", "greek": "ἐκλήθη δὲ καὶ ὁ Ἰησοῦς καὶ οἱ μαθηταὶ αὐτοῦ εἰς τὸν γάμον.", "literal": "Es wurde aber auch Jesus und seine Jünger zur Hochzeit eingeladen.", "extreme": "Jesus und seine Jünger sind eingeladen.", "notes": "Motiv: öffentliche Teilnahme. „Jünger“ als bereits bestehender Kreis.", "vocab": "ἐκλήθη=eingeladen; μαθηταὶ=Jünger; εἰς=zu/in"}, {"ref": "Joh 2,3", "greek": "καὶ ὑστερήσαντος οἴνου λέγει ἡ μήτηρ τοῦ Ἰησοῦ πρὸς αὐτόν· Οἶνον οὐκ ἔχουσιν.", "literal": "Und als der Wein ausging, sagt die Mutter Jesu zu ihm: Sie haben keinen Wein.", "extreme": "Der Wein wird knapp. Maria: „Die haben keinen Wein mehr.“", "notes": "Konflikt/Problem. Maria beobachtet und adressiert Jesus indirekt.", "vocab": "οἶνος=Wein; ὑστερέω=fehlen/ausgehen; οὐκ ἔχουσιν=haben nicht"}, {"ref": "Joh 2,4", "greek": "καὶ λέγει αὐτῇ ὁ Ἰησοῦς· Τί ἐμοὶ καὶ σοί, γύναι; οὔπω ἥκει ἡ ὥρα μου.", "literal": "Und Jesus sagt zu ihr: Was ist mir und dir, Frau? Meine Stunde ist noch nicht gekommen.", "extreme": "Jesus: „Was willst du von mir? Es ist noch nicht meine Zeit.“", "notes": "Johanneisches Motiv „Stunde“. Die Anrede „γύναι“ ist höflich, kann aber distanziert wirken.", "vocab": "Τί ἐμοὶ καὶ σοί=Was (ist) mir und dir; γύναι=Frau; ὥρα=Stunde"}, {"ref": "Joh 2,5", "greek": "λέγει ἡ μήτηρ αὐτοῦ τοῖς διακόνοις· Ὅ τι ἂν λέγῃ ὑμῖν ποιήσατε.", "literal": "Seine Mutter sagt zu den Dienern: Was immer er euch sagt, das tut.", "extreme": "Maria zu den Helfern: „Macht einfach, was er sagt.“", "notes": "Maria initiiert Gehorsam/Vertrauen. Übergang zum Handeln (Zeichen).", "vocab": "διάκονοι=Diener/Helfer; Ὅ τι ἂν=was auch immer; ποιήσατε=tut!"}];
-    const clamp = (s, n=140) => (s.length<=n? s : s.slice(0, n-1) + "…");
-    const save = (k,v)=>localStorage.setItem(k, JSON.stringify(v));
-    const load = (k,def)=>{ try { const v=JSON.parse(localStorage.getItem(k)); return (v??def); } catch(e){ return def; } };
-    
-  let idx = load('joh2_idx', 0);
-  const $ = (id)=>document.getElementById(id);
+        <div class="add-actions">
+          <button id="btnSave" class="btn" type="submit">Speichern</button>
+          <button id="btnCancel" class="btn btn-ghost" type="button">Abbrechen</button>
+        </div>
+      </form>
+    </section>
+  </main>
 
-  function render() {
-    const v = DATA[idx];
-    $('ref').textContent = v.ref;
-    $('greek').textContent = v.greek;
-    $('literal').textContent = v.literal;
-    $('extreme').textContent = v.extreme;
-    $('notes').textContent = v.notes;
-    $('vocab').textContent = "Vokabeln: " + v.vocab;
+  <!-- Menu Drawer -->
+  <div id="menuOverlay" class="overlay" hidden></div>
+  <aside id="menuDrawer" class="drawer" role="dialog" aria-label="Menü" aria-modal="true" aria-hidden="true">
+    <div class="drawer-inner">
+      <div class="drawer-title">LoopRead</div>
 
-    $('pvGreek').textContent = clamp(v.greek, 80);
-    $('pvLit').textContent = clamp(v.literal, 80);
-    $('pvExt').textContent = clamp(v.extreme, 80);
-    $('pvNotes').textContent = clamp(v.notes, 80);
+      <button id="menuToReader" class="drawer-item" type="button">Lesen</button>
+      <button id="menuToAdd" class="drawer-item" type="button">Neue Blocksammlung</button>
 
-    save('joh2_idx', idx);
-  }
+      <div class="drawer-sep" role="separator" aria-hidden="true"></div>
 
-  // optional: nur ein Panel offen halten (wenn geöffnet)
-  document.querySelectorAll('details.blk').forEach(d => {
-    d.addEventListener('toggle', () => {
-      if (!d.open) return;
-      document.querySelectorAll('details.blk').forEach(o => { if (o !== d) o.open = false; });
-    });
-  });
+      <button id="menuLoadSample" class="drawer-item" type="button">Probedaten laden</button>
+      <button id="menuClearAll" class="drawer-item danger" type="button">Alle Daten löschen</button>
 
-  $('prev').addEventListener('click', () => { idx = (idx - 1 + DATA.length) % DATA.length; render(); });
-  $('next').addEventListener('click', () => { idx = (idx + 1) % DATA.length; render(); });
+      <div class="drawer-footnote">
+        Daten werden lokal im Browser gespeichert (localStorage).
+      </div>
+    </div>
+  </aside>
 
-  // swipe
-  let x0 = null;
-  document.addEventListener('touchstart', (e)=>{ x0 = e.touches[0].clientX; }, {passive:true});
-  document.addEventListener('touchend', (e)=>{
-    if (x0 == null) return;
-    const x1 = e.changedTouches[0].clientX;
-    const dx = x1 - x0;
-    if (Math.abs(dx) > 60) { dx < 0 ? $('next').click() : $('prev').click(); }
-    x0 = null;
-  }, {passive:true});
-
-  render();
-
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>

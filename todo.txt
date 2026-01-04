@@ -19,7 +19,7 @@ import option im burgermenü. dann kann man eine excelldatei hochladen. dabei is
 
 
 
-Kein Konto? Bitte in Firebase anlegen (nur Admin).
+"Kein Konto? Bitte in Firebase anlegen (nur Admin)."
 diesen schriftzug entfernen. auch andere fehlermeldungen die verraten, das das backend firebase ist
 
 ich hann mich nicht ausloggen
@@ -29,3 +29,7 @@ die meldung bei probedaten laden soll in der app angezeigt werden als kästchen 
 text in den textblächen soll times new roman sein
 
 mach wieder vierecke um die titel!
+
+alerts sollen rundherum einheitlichen ramen haben, momentan rechts und links dicker
+
+info löschen: Daten werden lokal im Browser gespeichert (localStorage).

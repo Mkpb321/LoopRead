@@ -33,3 +33,5 @@ mach wieder vierecke um die titel!
 alerts sollen rundherum einheitlichen ramen haben, momentan rechts und links dicker
 
 info löschen: Daten werden lokal im Browser gespeichert (localStorage).
+
+text zwischen ** wird fett angezeigt. z.b. **τῇ**

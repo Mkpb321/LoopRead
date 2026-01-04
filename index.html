@@ -3,28 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#f2f2f2" />
   <title>LoopRead</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar" role="banner">
     <nav class="nav" aria-label="Blocksammlungen Navigation">
-      <button id="btnPrev" class="icon-btn" type="button" aria-label="Zurück">
-        ‹
-      </button>
+      <button id="btnPrev" class="icon-btn" type="button" aria-label="Zurück">‹</button>
 
       <div class="nav-center" aria-live="polite">
         <span id="navIndex" class="nav-index">0/0</span>
       </div>
 
-      <button id="btnNext" class="icon-btn" type="button" aria-label="Weiter">
-        ›
-      </button>
-
-      <button id="btnMenu" class="icon-btn" type="button" aria-label="Menü öffnen" aria-haspopup="true" aria-controls="menuDrawer">
-        ☰
-      </button>
+      <button id="btnNext" class="icon-btn" type="button" aria-label="Weiter">›</button>
+      <button id="btnMenu" class="icon-btn" type="button" aria-label="Menü öffnen" aria-haspopup="true" aria-controls="menuDrawer">☰</button>
     </nav>
   </header>
 
@@ -47,12 +40,12 @@
           <button id="btnLogin" class="btn" type="submit">Einloggen</button>
         </form>
 
-        <div class="login-footnote">Kein Konto? Bitte in Firebase anlegen (nur Admin).</div>
+        <div class="login-footnote">Keine Registrierung in der App. Nutzer werden in Firebase (Admin) angelegt.</div>
       </div>
     </section>
 
     <!-- Reader View -->
-    <section id="view-reader" class="view view-active" aria-label="Lesen">
+    <section id="view-reader" class="view" aria-label="Lesen">
       <div id="blocksContainer" class="blocks" aria-live="polite"></div>
     </section>
 
@@ -72,6 +65,41 @@
         </div>
       </form>
     </section>
+
+    <!-- Import View -->
+    <section id="view-import" class="view" aria-label="Import">
+      <div class="add-header">
+        <h1 class="add-title">Import</h1>
+        <p class="add-hint">
+          Zeile 1 enthält die Titel (Spalten). Ab Zeile 2 ist jede Zeile eine Blocksammlung. Pflichtfelder dürfen nicht leer sein.
+        </p>
+      </div>
+
+      <form id="importForm" class="add-form" autocomplete="off">
+        <div class="editor">
+          <div class="editor-label">Datei</div>
+          <input id="importFile" class="input" type="file" accept=".xlsx,.xls,.csv" />
+          <div id="importInfo" class="import-info"></div>
+        </div>
+
+        <div class="editor">
+          <div class="editor-label">Importmodus</div>
+          <label class="radio">
+            <input type="radio" name="importMode" value="append" checked />
+            <span>Anhängen</span>
+          </label>
+          <label class="radio">
+            <input type="radio" name="importMode" value="replace" />
+            <span>Ersetzen</span>
+          </label>
+        </div>
+
+        <div class="add-actions">
+          <button id="btnImport" class="btn" type="submit">Importieren</button>
+          <button id="btnImportCancel" class="btn btn-ghost" type="button">Abbrechen</button>
+        </div>
+      </form>
+    </section>
   </main>
 
   <!-- Menu Drawer -->
@@ -82,6 +110,7 @@
 
       <button id="menuToReader" class="drawer-item" type="button">Lesen</button>
       <button id="menuToAdd" class="drawer-item" type="button">Neue Blocksammlung</button>
+      <button id="menuToImport" class="drawer-item" type="button">Import</button>
 
       <div class="drawer-sep" role="separator" aria-hidden="true"></div>
 
@@ -90,14 +119,17 @@
       <button id="menuLogout" class="drawer-item" type="button">Logout</button>
 
       <div class="drawer-footnote">
-        Daten werden lokal im Browser gespeichert (localStorage).
+        Daten werden lokal im Browser gespeichert (localStorage) – getrennt pro Firebase-User.
       </div>
     </div>
   </aside>
 
-  <!-- Firebase (Auth only, no registration) -->
+  <!-- Firebase (Auth only) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+  <!-- SheetJS (XLSX/CSV Import) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <script src="app.js"></script>
 </body>

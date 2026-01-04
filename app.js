@@ -1,4 +1,4 @@
-/* LoopRead — single-page app (Reader + Add) with localStorage persistence */
+/* LoopRead — single-page app (Reader + Add + Import) with Firebase login and localStorage persistence */
 
 (() => {
   'use strict';
@@ -12,33 +12,40 @@
     navIndex: document.getElementById('navIndex'),
     btnMenu: document.getElementById('btnMenu'),
 
+    viewLogin: document.getElementById('view-login'),
     viewReader: document.getElementById('view-reader'),
     viewAdd: document.getElementById('view-add'),
+    viewImport: document.getElementById('view-import'),
+
     blocksContainer: document.getElementById('blocksContainer'),
 
     menuOverlay: document.getElementById('menuOverlay'),
     menuDrawer: document.getElementById('menuDrawer'),
     menuToReader: document.getElementById('menuToReader'),
     menuToAdd: document.getElementById('menuToAdd'),
+    menuToImport: document.getElementById('menuToImport'),
     menuLoadSample: document.getElementById('menuLoadSample'),
     menuClearAll: document.getElementById('menuClearAll'),
+    menuLogout: document.getElementById('menuLogout'),
 
     addForm: document.getElementById('addForm'),
     editors: document.getElementById('editors'),
     btnCancel: document.getElementById('btnCancel'),
 
+    importForm: document.getElementById('importForm'),
+    importFile: document.getElementById('importFile'),
+    importInfo: document.getElementById('importInfo'),
+    btnImportCancel: document.getElementById('btnImportCancel'),
+
     toast: document.getElementById('toast'),
 
-    viewLogin: document.getElementById('view-login'),
     loginForm: document.getElementById('loginForm'),
     loginEmail: document.getElementById('loginEmail'),
     loginPassword: document.getElementById('loginPassword'),
     btnLogin: document.getElementById('btnLogin'),
-
-    menuLogout: document.getElementById('menuLogout'),
   };
 
-  /** @type {{collections: Array<Array<{title:string, content:string}>>, currentIndex:number}} */
+  /** @type {{collections: Array<Array<{title:string, content:string}>>, currentIndex:number, menuOpen:boolean, uid:string|null}} */
   const state = {
     collections: [],
     currentIndex: 0,
@@ -46,62 +53,28 @@
     uid: null,
   };
 
-  
-  // --- Toast (kein alert/confirm für Fehlermeldungen) ---
+  // --- Toast (kein alert für Fehlermeldungen) ---
   let toastTimer = null;
   function showToast(message) {
-    if (!els.toast) return;
-    els.toast.textContent = String(message || '').trim();
+    const msg = String(message || '').trim();
+    if (!msg) return;
+
+    els.toast.textContent = msg;
     els.toast.hidden = false;
 
     if (toastTimer) window.clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => {
       els.toast.hidden = true;
-    }, 3200);
+    }, 3400);
   }
 
-  // --- Firebase Auth (Login only) ---
-  // WICHTIG: Trage hier deine Firebase Web-App Konfiguration ein.
-  // Du findest sie in der Firebase Console (Project settings -> Your apps -> Web app).
-  const firebaseConfig = {
-    apiKey: "AIzaSyBdyurJosE1H9iG6Inde7ptCb-aRBl6Hks",
-    authDomain: "my-hobby-apps.firebaseapp.com",
-    projectId: "my-hobby-apps",
-    storageBucket: "my-hobby-apps.firebasestorage.app",
-    messagingSenderId: "894079667150",
-    appId: "1:894079667150:web:a63294d5a61097a17ef99f"
-  };
-
-  let firebaseReady = false;
-  function initFirebase() {
-    if (typeof window.firebase === 'undefined' || !window.firebase?.initializeApp) {
-      showToast('Firebase SDK nicht geladen.');
-      return;
-    }
-    const looksPlaceholder = Object.values(firebaseConfig).some(v => String(v).includes('YOUR_'));
-    if (looksPlaceholder) {
-      // App bleibt auf Login-Screen, bis Konfiguration eingesetzt ist.
-      showToast('Firebase-Konfiguration fehlt (app.js: firebaseConfig).');
-      return;
-    }
-    try {
-      if (!firebase.apps || firebase.apps.length === 0) {
-        firebase.initializeApp(firebaseConfig);
-      }
-      firebaseReady = true;
-    } catch (e) {
-      showToast('Firebase init fehlgeschlagen.');
-      firebaseReady = false;
-    }
+  function safeParse(jsonStr, fallback) {
+    try { return JSON.parse(jsonStr); } catch { return fallback; }
   }
 
   function storageKey(baseKey) {
     const uid = state.uid || 'anon';
     return `${baseKey}_${uid}`;
-  }
-
-function safeParse(jsonStr, fallback) {
-    try { return JSON.parse(jsonStr); } catch { return fallback; }
   }
 
   function loadState() {
@@ -130,23 +103,19 @@ function safeParse(jsonStr, fallback) {
 
   function clampIndex() {
     const n = state.collections.length;
-    if (n === 0) {
-      state.currentIndex = 0;
-      return;
-    }
+    if (n === 0) { state.currentIndex = 0; return; }
     if (state.currentIndex < 0) state.currentIndex = 0;
     if (state.currentIndex >= n) state.currentIndex = n - 1;
   }
 
-  
   function setAuthLocked(isLocked) {
     document.body.classList.toggle('auth-locked', isLocked);
 
-    // Views: only login when locked; otherwise reader/add as controlled elsewhere
     els.viewLogin.classList.toggle('view-active', isLocked);
     if (isLocked) {
       els.viewReader.classList.remove('view-active');
       els.viewAdd.classList.remove('view-active');
+      els.viewImport.classList.remove('view-active');
     }
   }
 
@@ -155,36 +124,36 @@ function safeParse(jsonStr, fallback) {
     state.currentIndex = 0;
   }
 
-function setView(view) {
+  function setView(view) {
     if (!state.uid) {
       setAuthLocked(true);
       return;
     }
-    const isReader = view === 'reader';
-    els.viewReader.classList.toggle('view-active', isReader);
-    els.viewAdd.classList.toggle('view-active', !isReader);
 
-    // Keep nav always visible, but disable prev/next when no data
+    els.viewReader.classList.toggle('view-active', view === 'reader');
+    els.viewAdd.classList.toggle('view-active', view === 'add');
+    els.viewImport.classList.toggle('view-active', view === 'import');
+
     const hasCollections = state.collections.length > 0;
     els.btnPrev.disabled = !hasCollections;
     els.btnNext.disabled = !hasCollections;
 
-    if (!isReader) {
+    if (view === 'add') {
       buildEditors(3);
       ensureExtraEditorIfNeeded();
-      // Focus first field for quicker entry
       const first = els.editors.querySelector('input');
       if (first) first.focus();
+    }
+
+    if (view === 'import') {
+      resetImportForm();
+      els.importFile.focus();
     }
   }
 
   function renderNav() {
     const n = state.collections.length;
-    if (n === 0) {
-      els.navIndex.textContent = '0/0';
-      return;
-    }
-    els.navIndex.textContent = `${state.currentIndex + 1}/${n}`;
+    els.navIndex.textContent = n === 0 ? '0/0' : `${state.currentIndex + 1}/${n}`;
   }
 
   function renderBlocks() {
@@ -195,7 +164,7 @@ function setView(view) {
       div.className = 'empty';
       div.innerHTML = `
         <strong>Keine Daten.</strong><br/>
-        Öffne das Menü (☰) und lade Probedaten oder erstelle eine neue Blocksammlung.
+        Öffne das Menü (☰) und lade Probedaten, importiere oder erstelle eine neue Blocksammlung.
       `;
       els.blocksContainer.appendChild(div);
       return;
@@ -214,7 +183,6 @@ function setView(view) {
       const article = document.createElement('article');
       article.className = 'block';
 
-      // Trennlinie (oben) über den ganzen Screen + Titelbox hängt unten an der Linie
       const sep = document.createElement('div');
       sep.className = 'block-sep';
 
@@ -233,6 +201,10 @@ function setView(view) {
 
       els.blocksContainer.appendChild(article);
     });
+  }
+
+  function scrollTop() {
+    window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
   function gotoNext() {
@@ -257,20 +229,14 @@ function setView(view) {
     scrollTop();
   }
 
-  function scrollTop() {
-    // Keep it simple: scroll to top of main content
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  }
-
-  /* Drawer */
+  // Drawer
   function openMenu() {
-    if (!state.uid) { return; }
+    if (!state.uid) return;
     state.menuOpen = true;
     els.menuOverlay.hidden = false;
     els.menuDrawer.classList.add('open');
     els.menuDrawer.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
-    // trap focus lightly
     els.menuToReader.focus();
   }
 
@@ -283,7 +249,7 @@ function setView(view) {
     els.btnMenu.focus();
   }
 
-  /* Add collection editors */
+  // Add collection editors
   function buildEditors(minCount) {
     els.editors.innerHTML = '';
     for (let i = 0; i < minCount; i++) {
@@ -350,7 +316,6 @@ function setView(view) {
       content: (v.content || '').trim(),
     }));
 
-    // Validierung: wenn Titel ODER Inhalt ausgefüllt ist, müssen beide ausgefüllt sein
     for (let i = 0; i < values.length; i++) {
       const t = values[i].title;
       const c = values[i].content;
@@ -364,7 +329,6 @@ function setView(view) {
     }
 
     const complete = values.filter(v => v.title.length > 0 && v.content.length > 0);
-
     if (complete.length === 0) {
       showToast('Bitte mindestens einen Textblock vollständig ausfüllen.');
       return;
@@ -376,11 +340,11 @@ function setView(view) {
     renderNav();
     renderBlocks();
     setView('reader');
-    closeMenu(); // safe even if closed
+    closeMenu();
     scrollTop();
   }
 
-  /* Sample data */
+  // Sample data
   function sampleCollections() {
     return [
       [
@@ -399,7 +363,7 @@ function setView(view) {
         { title: 'Hebräisch 2', content: 'אָדָם לְעָמָל יוּלָּד' },
       ],
       [
-        { title: 'Notizen', content: '- Blocksammlungen blättern: oben oder per Swipe\n- Textblöcke: Titel klein, Text groß\n- Alles lokal gespeichert' },
+        { title: 'Notizen', content: '- Blocksammlungen blättern: unten oder per Swipe\n- Textblöcke: Titel klein, Text groß\n- Alles lokal gespeichert' },
       ],
     ];
   }
@@ -432,16 +396,15 @@ function setView(view) {
     scrollTop();
   }
 
-  /* Swipe navigation */
+  // Swipe navigation (disabled when menu open)
   function installSwipe() {
     let startX = 0, startY = 0, startT = 0;
-    const thresholdX = 55;     // px
-    const restraint = 1.2;     // dx must be > dy * restraint
-    const allowedTime = 700;   // ms
+    const thresholdX = 55;
+    const restraint = 1.2;
+    const allowedTime = 700;
 
     const onStart = (e) => {
       if (!els.viewReader.classList.contains('view-active')) return;
-      if (state.menuOpen) return;
       if (state.menuOpen) return;
       const touch = (e.touches && e.touches[0]) ? e.touches[0] : e;
       startX = touch.clientX;
@@ -451,6 +414,7 @@ function setView(view) {
 
     const onEnd = (e) => {
       if (!els.viewReader.classList.contains('view-active')) return;
+      if (state.menuOpen) return;
       const touch = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : e;
       const distX = touch.clientX - startX;
       const distY = touch.clientY - startY;
@@ -462,11 +426,9 @@ function setView(view) {
       }
     };
 
-    // touch + pointer fallback
     document.addEventListener('touchstart', onStart, { passive: true });
     document.addEventListener('touchend', onEnd, { passive: true });
 
-    // Pointer events (for some desktop browsers)
     let pointerDown = false;
     document.addEventListener('pointerdown', (e) => {
       if (e.pointerType === 'mouse') return;
@@ -482,7 +444,186 @@ function setView(view) {
     }, { passive: true });
   }
 
-  /* Wiring */
+  // --- Import ---
+  function resetImportForm() {
+    if (els.importFile) els.importFile.value = '';
+    if (els.importInfo) els.importInfo.textContent = '';
+    // default radio is already checked in HTML
+  }
+
+  function columnLetter(zeroBasedIndex) {
+    // 0 -> A, 1 -> B, ...
+    let n = zeroBasedIndex + 1;
+    let s = '';
+    while (n > 0) {
+      const r = (n - 1) % 26;
+      s = String.fromCharCode(65 + r) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+    return s;
+  }
+
+  function isEmptyCell(v) {
+    return String(v ?? '').trim().length === 0;
+  }
+
+  function isRowEmpty(row, lastColIdx) {
+    for (let c = 0; c <= lastColIdx; c++) {
+      if (!isEmptyCell(row?.[c])) return false;
+    }
+    return true;
+  }
+
+  async function parseWorkbookFromFile(file) {
+    if (!window.XLSX) {
+      throw new Error('Import-Bibliothek (XLSX) nicht geladen.');
+    }
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    return wb;
+  }
+
+  async function runImport(file, mode) {
+    let wb;
+    try {
+      wb = await parseWorkbookFromFile(file);
+    } catch (e) {
+      showToast(e?.message || 'Import fehlgeschlagen.');
+      return;
+    }
+
+    const sheetNames = wb.SheetNames || [];
+    if (sheetNames.length !== 1) {
+      showToast('Import abgebrochen: Die Datei muss genau ein Tabellenblatt (Sheet) enthalten.');
+      return;
+    }
+
+    const sheet = wb.Sheets[sheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+
+    if (!rows || rows.length === 0) {
+      showToast('Import abgebrochen: Datei ist leer.');
+      return;
+    }
+
+    const header = rows[0] || [];
+    let lastTitleCol = -1;
+    for (let c = 0; c < header.length; c++) {
+      if (!isEmptyCell(header[c])) lastTitleCol = c;
+    }
+    if (lastTitleCol < 0) {
+      showToast('Import abgebrochen: Keine Titel in Zeile 1 gefunden.');
+      return;
+    }
+
+    // Header validation: no gaps within 0..lastTitleCol
+    const titles = [];
+    for (let c = 0; c <= lastTitleCol; c++) {
+      const t = String(header[c] ?? '').trim();
+      if (!t) {
+        showToast(`Import abgebrochen: Titel fehlt in Zeile 1, Spalte ${columnLetter(c)}.`);
+        return;
+      }
+      titles.push(t);
+    }
+
+    // Data rows start at index 1 (Excel row 2)
+    let dataRows = rows.slice(1);
+
+    // Ignore trailing empty rows at end
+    while (dataRows.length > 0 && isRowEmpty(dataRows[dataRows.length - 1], lastTitleCol)) {
+      dataRows.pop();
+    }
+
+    if (dataRows.length === 0) {
+      showToast('Import abgebrochen: Keine Datenzeilen gefunden (ab Zeile 2).');
+      return;
+    }
+
+    const imported = [];
+
+    for (let r = 0; r < dataRows.length; r++) {
+      const row = dataRows[r] || [];
+      const excelRowNumber = r + 2; // since header is row 1
+
+      // Empty row in the middle is not allowed
+      if (isRowEmpty(row, lastTitleCol)) {
+        showToast(`Import abgebrochen: Zeile ${excelRowNumber} ist leer.`);
+        return;
+      }
+
+      const collection = [];
+      for (let c = 0; c <= lastTitleCol; c++) {
+        const raw = row[c];
+        const content = String(raw ?? '').trim();
+        if (!content) {
+          showToast(`Import abgebrochen: Leerzelle in Zeile ${excelRowNumber}, Spalte ${columnLetter(c)} (Titel: "${titles[c]}").`);
+          return;
+        }
+        collection.push({ title: titles[c], content });
+      }
+
+      imported.push(collection);
+    }
+
+    if (imported.length === 0) {
+      showToast('Import abgebrochen: Keine gültigen Daten gefunden.');
+      return;
+    }
+
+    if (mode === 'replace') {
+      state.collections = imported;
+      state.currentIndex = 0;
+    } else {
+      const oldLen = state.collections.length;
+      state.collections = state.collections.concat(imported);
+      state.currentIndex = oldLen; // springe zur ersten importierten Sammlung
+      clampIndex();
+    }
+
+    saveState();
+    renderNav();
+    renderBlocks();
+    setView('reader');
+    closeMenu();
+    scrollTop();
+
+    showToast(`Import erfolgreich: ${imported.length} Blocksammlung(en) übernommen.`);
+  }
+
+  // Firebase Auth (Login only)
+  // WICHTIG: Trage hier deine Firebase Web-App Konfiguration ein.
+  const firebaseConfig = {
+    apiKey: "AIzaSyBdyurJosE1H9iG6Inde7ptCb-aRBl6Hks",
+    authDomain: "my-hobby-apps.firebaseapp.com",
+    projectId: "my-hobby-apps",
+    storageBucket: "my-hobby-apps.firebasestorage.app",
+    messagingSenderId: "894079667150",
+    appId: "1:894079667150:web:a63294d5a61097a17ef99f"
+  };
+
+  let firebaseReady = false;
+
+  function initFirebase() {
+    if (typeof window.firebase === 'undefined' || !window.firebase?.initializeApp) {
+      showToast('Firebase SDK nicht geladen.');
+      return;
+    }
+    const looksPlaceholder = Object.values(firebaseConfig).some(v => String(v).includes('YOUR_'));
+    if (looksPlaceholder) {
+      // App bleibt auf Login-Screen, bis Konfiguration eingesetzt ist.
+      showToast('Firebase-Konfiguration fehlt (app.js: firebaseConfig).');
+      return;
+    }
+    try {
+      if (!firebase.apps || firebase.apps.length === 0) firebase.initializeApp(firebaseConfig);
+      firebaseReady = true;
+    } catch (e) {
+      firebaseReady = false;
+      showToast('Firebase init fehlgeschlagen.');
+    }
+  }
+
   function wireEvents() {
     els.btnPrev.addEventListener('click', gotoPrev);
     els.btnNext.addEventListener('click', gotoNext);
@@ -490,47 +631,49 @@ function setView(view) {
     els.btnMenu.addEventListener('click', openMenu);
     els.menuOverlay.addEventListener('click', closeMenu);
 
-    els.menuToReader.addEventListener('click', () => {
-      setView('reader');
-      closeMenu();
-    });
-
-    els.menuToAdd.addEventListener('click', () => {
-      setView('add');
-      closeMenu();
-    });
+    els.menuToReader.addEventListener('click', () => { setView('reader'); closeMenu(); });
+    els.menuToAdd.addEventListener('click', () => { setView('add'); closeMenu(); });
+    els.menuToImport.addEventListener('click', () => { setView('import'); closeMenu(); });
 
     els.menuLoadSample.addEventListener('click', loadSamples);
     els.menuClearAll.addEventListener('click', clearAll);
 
-    els.btnCancel.addEventListener('click', () => {
-      setView('reader');
-      scrollTop();
+    els.menuLogout.addEventListener('click', () => {
+      if (!firebaseReady) { showToast('Firebase nicht bereit.'); return; }
+      firebase.auth().signOut();
     });
 
-    els.addForm.addEventListener('submit', (e) => {
+    els.btnCancel.addEventListener('click', () => { setView('reader'); scrollTop(); });
+    els.addForm.addEventListener('submit', (e) => { e.preventDefault(); saveNewCollection(); });
+
+    els.importFile.addEventListener('change', () => {
+      const f = els.importFile.files && els.importFile.files[0];
+      els.importInfo.textContent = f ? `Ausgewählt: ${f.name}` : '';
+    });
+
+    els.btnImportCancel.addEventListener('click', () => { setView('reader'); scrollTop(); });
+
+    els.importForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      saveNewCollection();
+      const f = els.importFile.files && els.importFile.files[0];
+      if (!f) { showToast('Bitte eine Datei auswählen.'); return; }
+
+      const mode = (document.querySelector('input[name="importMode"]:checked')?.value || 'append');
+      await runImport(f, mode);
     });
 
     els.loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!firebaseReady) {
-        showToast('Firebase-Konfiguration fehlt oder SDK nicht geladen.');
-        return;
-      }
+      if (!firebaseReady) { showToast('Firebase-Konfiguration fehlt oder SDK nicht geladen.'); return; }
       const email = (els.loginEmail.value || '').trim();
       const password = (els.loginPassword.value || '');
-      if (!email || !password) {
-        showToast('Bitte E-Mail und Passwort eingeben.');
-        return;
-      }
+      if (!email || !password) { showToast('Bitte E-Mail und Passwort eingeben.'); return; }
+
       try {
         els.btnLogin.disabled = true;
         await firebase.auth().signInWithEmailAndPassword(email, password);
       } catch (err) {
-        const msg = (err && err.message) ? err.message : 'Login fehlgeschlagen.';
-        showToast(msg);
+        showToast((err && err.message) ? err.message : 'Login fehlgeschlagen.');
       } finally {
         els.btnLogin.disabled = false;
       }
@@ -538,11 +681,9 @@ function setView(view) {
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        // Close menu or leave add view
         if (!els.menuOverlay.hidden) closeMenu();
       }
-      // Small convenience: arrow keys on desktop
-      if (els.viewReader.classList.contains('view-active')) {
+      if (els.viewReader.classList.contains('view-active') && !state.menuOpen) {
         if (e.key === 'ArrowRight') gotoNext();
         if (e.key === 'ArrowLeft') gotoPrev();
       }
@@ -550,12 +691,12 @@ function setView(view) {
   }
 
   function init() {
+    // Default: locked until auth says otherwise
+    setAuthLocked(true);
+
     initFirebase();
     wireEvents();
     installSwipe();
-
-    // Default: locked until auth says otherwise
-    setAuthLocked(true);
 
     if (firebaseReady) {
       firebase.auth().onAuthStateChanged((user) => {
@@ -567,19 +708,14 @@ function setView(view) {
           renderBlocks();
           setView('reader');
         } else {
-          // Logout / not logged in
           state.uid = null;
           resetInMemoryState();
           renderNav();
           renderBlocks();
           setAuthLocked(true);
-          // Ensure menu closed
           try { closeMenu(); } catch {}
         }
       });
-    } else {
-      // Kein Firebase: Login-Screen bleibt sichtbar
-      setAuthLocked(true);
     }
   }
 

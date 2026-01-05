@@ -102,8 +102,8 @@ body{
 
 .block-content{
   font-family: "Times New Roman", Times, "Noto Serif", serif;
-  font-size: 18px;
-  line-height: 1.45;
+  font-size: 16px;
+  line-height: 1.35;
   margin: 8px var(--pad) 0px var(--pad);
   white-space: pre-wrap;
   word-break: break-word;
@@ -111,6 +111,23 @@ body{
   unicode-bidi: plaintext;
   direction: auto;
 }
+
+
+/* Word tapping: mark occurrences with generated colors */
+.word-token{
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+mark.word-token{
+  background: var(--hl-color, #ffe08a);
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 4px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
 
 
 /* Blocktitel (unten rechts) – dezent, ohne Rahmen */
@@ -320,7 +337,7 @@ body.auth-locked .overlay{
 
 /* Slightly larger text on wider screens */
 @media (min-width: 700px){
-  .block-content{ font-size: 19px; }
+  .block-content{ font-size: 17px; }
   .blocks .block:first-of-type .block-content{ font-size: 23px; line-height: 1.65; }
   .nav{ padding-left: 12px; padding-right: 12px; }
   :root{ --pad: 12px; }

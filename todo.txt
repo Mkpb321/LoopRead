@@ -7,10 +7,6 @@ firebase login
 link zum chatgt chat vielleicht auch gleich
 
 
-favicon einbinden richtig
-titel unten rechts
-in neuem chat
-
 x für burgermenü schliessen
 beim öffnen des menü verschieben sich buttons bisschne
 

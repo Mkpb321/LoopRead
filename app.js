@@ -272,19 +272,23 @@
       const article = document.createElement('article');
       article.className = 'block';
 
+      // Separator line (full width)
       const sep = document.createElement('div');
       sep.className = 'block-sep';
 
-      const titleBox = document.createElement('div');
-      titleBox.className = 'block-title-box';
-      titleBox.textContent = (b.title || '').trim() || `Block ${i + 1}`;
-
-      sep.appendChild(titleBox);
-
+      // Content
       const content = document.createElement('div');
       content.className = 'block-content';
-      content.innerHTML = formatContent((b.content || '').trim());article.appendChild(sep);
+      content.innerHTML = formatContent((b.content || '').trim());
+
+      // Title label (subtle, bottom-right)
+      const titleLabel = document.createElement('div');
+      titleLabel.className = 'block-title-label';
+      titleLabel.textContent = (b.title || '').trim() || `Block ${i + 1}`;
+
+      article.appendChild(sep);
       article.appendChild(content);
+      article.appendChild(titleLabel);
 
       els.blocksContainer.appendChild(article);
     });

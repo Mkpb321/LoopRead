@@ -85,9 +85,7 @@ body{
 /* Trennlinie (oben) über den ganzen Screen + Titelbox darunter */
 .block-sep{
   position: relative;
-  padding-top: 1px; /* verhindert, dass die Linie hinter der Box verschwindet */
-  display: flex;
-  justify-content: flex-end;
+  padding-top: 1px; /* verhindert, dass die Linie hinter dem Inhalt verschwindet */
 }
 
 .block-sep::before{
@@ -100,23 +98,18 @@ body{
   border-top: 1px solid var(--line);
 }
 
+.block-title-label,
 .block-title-box{
-  position: relative;
-  display: inline-block;
-  font-size: 10px; /* titles even smaller */
- /* titles smaller font */
-  font-weight: 600;
-  padding: 4px 10px 3px 10px;
-  margin: 0;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-top: 0; /* Oberkante ist die Trennlinie */
-    /* bündig am rechten Screenrand */
-  margin-left: auto;
-  margin-right: calc(50% - 50vw);
-  display: inline-flex;
-  align-items: flex-end;
-  justify-content: flex-end;
+  font-size: 9px;
+  font-weight: 400;
+  color: #777;
+  margin: 2px 4px 10px var(--pad);
+  padding: 0;
+  background: none;
+  border: 0;
+  line-height: 1.1;
+  text-align: right;
+  user-select: none;
 }
 
 
@@ -124,7 +117,7 @@ body{
   font-family: "Times New Roman", Times, "Noto Serif", serif;
   font-size: 18px;
   line-height: 1.45;
-  margin: 8px var(--pad) 12px var(--pad);
+  margin: 8px var(--pad) 6px var(--pad);
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: anywhere;

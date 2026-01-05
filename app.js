@@ -113,6 +113,10 @@
 
     
 
+
+    return out;
+  }
+
   // --- Word highlighting (Tap-to-Mark; in-memory only) ---
   const highlight = {
     selections: new Map(), // wordKey -> { idx:number, color:string }
@@ -261,8 +265,6 @@
       highlight.selections.set(wordKey, { idx, color });
       applyHighlightToWord(wordKey);
     }
-  }
-return out;
   }
 
   // In-App Confirm (statt window.confirm)

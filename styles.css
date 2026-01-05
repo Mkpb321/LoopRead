@@ -106,8 +106,8 @@ body{
 
 .block-content{
   font-family: "Times New Roman", Times, "Noto Serif", serif;
-  font-size: 16px;
-  line-height: 1.35;
+  font-size: 14px;
+  line-height: 1.15;
   margin: 8px var(--pad) 0px var(--pad);
   white-space: pre-wrap;
   word-break: break-word;

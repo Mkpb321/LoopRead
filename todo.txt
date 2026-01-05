@@ -11,11 +11,14 @@ favicon einbinden richtig
 titel unten rechts
 in neuem chat
 
+x für burgermenü schliessen
+beim öffnen des menü verschieben sich buttons bisschne
+
+anmeldefenster ist etwas ugly
+
+ein info i um burgermenü das alles beschreibt
+
 
 Ich möchte, dass du die nachfolgend beschriebenen Änderungen am bestehenden Code vornimmst. Der vollständige Quellcode der Anwendung ist bereits beigefügt. Bitte implementiere alle Änderungen korrekt und konsistent und gib mir anschließend sämtliche Dateien vollständig als ZIP-Download zurück. Zusätzlich erwarte ich eine prägnante, einzeilige Commit-Message sowie eine nachvollziehbare Erklärung der vorgenommenen Änderungen. Ich werde dir danach weitere Änderungen schicken. Die sollst du immer am aktuellsten code vornehmen. Also dem letzten, dem du mir geschickt hast. und jeweils wieder sämtliche Dateien vollständig als ZIP-Download zurück geben.
 
 Änderungen:
-
-
-momentan ist die schrift nur gross in der ersten box und danach klein und weniger abstand, wenn das fenster schmal ist oder auf dem smartphone, es soll aber immer so sein.
-dei markierung ist komisch mit dem radius und so, es soll ganz normal markiert sein wei wenn man in html <mark> tag macht. nicht darüber hinaus, kein radius

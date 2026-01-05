@@ -17,3 +17,5 @@ Ich möchte, dass du die nachfolgend beschriebenen Änderungen am bestehenden Co
 Änderungen:
 
 
+momentan ist die schrift nur gross in der ersten box und danach klein und weniger abstand, wenn das fenster schmal ist oder auf dem smartphone, es soll aber immer so sein.
+dei markierung ist komisch mit dem radius und so, es soll ganz normal markiert sein wei wenn man in html <mark> tag macht. nicht darüber hinaus, kein radius

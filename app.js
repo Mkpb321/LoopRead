@@ -10,9 +10,10 @@
     btnPrev: document.getElementById('btnPrev'),
     btnNext: document.getElementById('btnNext'),
     navIndex: document.getElementById('navIndex'),
-    btnHighlightTool: document.getElementById('btnHighlightTool'),
-
     btnMenu: document.getElementById('btnMenu'),
+
+    btnHighlightTool: document.getElementById('btnHighlightTool'),
+    btnClearHighlights: document.getElementById('btnClearHighlights'),
 
     viewLogin: document.getElementById('view-login'),
     viewReader: document.getElementById('view-reader'),
@@ -92,7 +93,7 @@
     });
   }
 
-  // **bold** rendering (safe)
+    // **bold** rendering (safe)
   function formatContent(raw) {
     const s = String(raw ?? '');
     let out = '';
@@ -122,23 +123,6 @@
     selections: new Map(), // wordKey -> { idx:number, color:string }
     nextIdx: 0,
   };
-
-  function setHighlightToolEnabled(enabled) {
-    const on = !!enabled;
-    state.highlightToolEnabled = on;
-
-    if (els.btnHighlightTool) {
-      els.btnHighlightTool.classList.toggle('is-active', on);
-      els.btnHighlightTool.setAttribute('aria-pressed', on ? 'true' : 'false');
-    }
-
-    document.body.classList.toggle('tool-highlight-active', on);
-
-    if (on) {
-      try { window.getSelection()?.removeAllRanges(); } catch {}
-    }
-  }
-
 
   function normalizeWord(raw) {
     return String(raw ?? '')
@@ -248,6 +232,7 @@
       } else {
         if (isMarked) {
           const repl = replaceTokenElement(n, 'span');
+          repl.style.removeProperty('--hl-color');
           n.replaceWith(repl);
         }
       }
@@ -260,11 +245,21 @@
     }
   }
 
+  function clearHighlights() {
+    highlight.selections.clear();
+    highlight.nextIdx = 0;
+
+    if (!els.blocksContainer) return;
+    const marks = Array.from(els.blocksContainer.querySelectorAll('mark.word-token'));
+    for (const m of marks) {
+      const repl = replaceTokenElement(m, 'span');
+      m.replaceWith(repl);
+    }
+  }
+
   function onWordTokenClick(e) {
     if (!state.highlightToolEnabled) return;
     if (!els.viewReader.classList.contains('view-active')) return;
-
-    try { window.getSelection()?.removeAllRanges(); } catch {}
 
     const targetEl = (e.target && e.target.nodeType === Node.ELEMENT_NODE)
       ? e.target
@@ -287,7 +282,33 @@
     }
   }
 
-  // In-App Confirm (statt window.confirm)
+  function setHighlightToolEnabled(enabled) {
+    state.highlightToolEnabled = !!enabled;
+    document.body.classList.toggle('tool-highlight-active', state.highlightToolEnabled);
+
+    if (els.btnHighlightTool) {
+      els.btnHighlightTool.classList.toggle('is-active', state.highlightToolEnabled);
+      els.btnHighlightTool.setAttribute('aria-pressed', state.highlightToolEnabled ? 'true' : 'false');
+    }
+  }
+
+  function toggleHighlightTool() {
+    setHighlightToolEnabled(!state.highlightToolEnabled);
+  }
+
+  function isEditableTarget(target) {
+    const el = (target && target.nodeType === Node.ELEMENT_NODE) ? target : target?.parentElement;
+    if (!el) return false;
+    return !!el.closest('input, textarea, [contenteditable=""], [contenteditable="true"], select, option');
+  }
+
+  function onGlobalSelectStart(e) {
+    if (!state.highlightToolEnabled) return;
+    if (isEditableTarget(e.target)) return;
+    e.preventDefault();
+  }
+
+// In-App Confirm (statt window.confirm)
   let confirmResolver = null;
   function showConfirm(message, okText = 'OK', cancelText = 'Abbrechen') {
     return new Promise((resolve) => {
@@ -384,6 +405,8 @@
   function resetInMemoryState() {
     state.collections = [];
     state.currentIndex = 0;
+    clearHighlights();
+    setHighlightToolEnabled(false);
   }
 
   function setView(view) {
@@ -896,20 +919,13 @@
     els.btnPrev.addEventListener('click', gotoPrev);
     els.btnNext.addEventListener('click', gotoNext);
 
-    if (els.btnHighlightTool) {
-      els.btnHighlightTool.addEventListener('click', () => {
-        setHighlightToolEnabled(!state.highlightToolEnabled);
-      });
-    }
+    if (els.btnHighlightTool) els.btnHighlightTool.addEventListener('click', toggleHighlightTool);
+    if (els.btnClearHighlights) els.btnClearHighlights.addEventListener('click', clearHighlights);
+
+    document.addEventListener('selectstart', onGlobalSelectStart, true);
 
     // Tap-to-highlight words inside reader blocks
     els.blocksContainer.addEventListener('click', onWordTokenClick);
-
-
-    // When the highlight tool is active, block native text selection (incl. double click).
-    document.addEventListener('selectstart', (ev) => {
-      if (state.highlightToolEnabled) ev.preventDefault();
-    }, true);
 
     els.btnMenu.addEventListener('click', openMenu);
     els.menuOverlay.addEventListener('click', closeMenu);
@@ -984,11 +1000,12 @@
     // Default: locked until auth says otherwise
     setAuthLocked(true);
 
+    // Default: highlight tool off
+    setHighlightToolEnabled(false);
+
     initFirebase();
     wireEvents();
     installSwipe();
-
-    setHighlightToolEnabled(false);
 
     if (firebaseReady) {
       firebase.auth().onAuthStateChanged((user) => {

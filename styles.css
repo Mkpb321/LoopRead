@@ -69,9 +69,8 @@ body{
 .icon-btn:active{ transform: translateY(1px); }
 
 .icon-btn.is-active{
-  background: #bdbdbd;
+  filter: brightness(0.82);
 }
-
 
 .main{
   width: 100%;
@@ -107,8 +106,8 @@ body{
 
 .block-content{
   font-family: "Times New Roman", Times, "Noto Serif", serif;
-  font-size: 14px;
-  line-height: 1.25;
+  font-size: 16px;
+  line-height: 1.35;
   margin: 8px var(--pad) 0px var(--pad);
   white-space: pre-wrap;
   word-break: break-word;
@@ -120,31 +119,40 @@ body{
 
 /* Word tapping: mark occurrences with generated colors */
 .word-token{
+  cursor: text;
   touch-action: manipulation;
 }
 
-.tool-highlight-active .word-token{
+body.tool-highlight-active .word-token{
   cursor: pointer;
 }
 
-.tool-highlight-active, .tool-highlight-active *{
+mark.word-token{
+  background: var(--hl-color, #ffeb3b);
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+
+/* Highlight tool active: prevent native text selection (except inputs/editables) */
+body.tool-highlight-active{
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
 
-mark.word-token{
-  background: var(--hl-color, #ffe08a);
-  color: inherit;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  border-radius: 0.28em;
-  font: inherit;
-  line-height: inherit;
-  box-shadow: 0 0 0 0.18em var(--hl-color, #ffe08a);
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
+body.tool-highlight-active input,
+body.tool-highlight-active textarea,
+body.tool-highlight-active [contenteditable=""],
+body.tool-highlight-active [contenteditable="true"],
+body.tool-highlight-active select{
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 
@@ -356,8 +364,6 @@ body.auth-locked .overlay{
 
 /* Slightly larger text on wider screens */
 @media (min-width: 700px){
-  .block-content{ font-size: 17px; }
-  .blocks .block:first-of-type .block-content{ font-size: 23px; line-height: 1.65; }
   .nav{ padding-left: 12px; padding-right: 12px; }
   :root{ --pad: 12px; }
 }

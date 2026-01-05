@@ -104,7 +104,7 @@ body{
   font-family: "Times New Roman", Times, "Noto Serif", serif;
   font-size: 18px;
   line-height: 1.45;
-  margin: 8px var(--pad) 6px var(--pad);
+  margin: 8px var(--pad) 0px var(--pad);
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: anywhere;
@@ -117,13 +117,13 @@ body{
 .block-footer{
   display: flex;
   justify-content: flex-end;
-  padding: 0 6px 6px 6px; /* weniger Abstand zum Rand */
+  padding: 0 1px 0px 6px; /* weniger Abstand zum Rand */
 }
 
 .block-title-label{
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--muted);
+  font-size: 9px;
+  font-weight: 200;
+  color: #000000;
   line-height: 1.1;
   user-select: none;
 }

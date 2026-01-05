@@ -10,6 +10,8 @@
     btnPrev: document.getElementById('btnPrev'),
     btnNext: document.getElementById('btnNext'),
     navIndex: document.getElementById('navIndex'),
+    btnHighlightTool: document.getElementById('btnHighlightTool'),
+
     btnMenu: document.getElementById('btnMenu'),
 
     viewLogin: document.getElementById('view-login'),
@@ -58,6 +60,7 @@
     menuOpen: false,
     confirmOpen: false,
     uid: null,
+    highlightToolEnabled: false,
   };
 
   // --- Toast (kein alert für Fehlermeldungen) ---
@@ -111,9 +114,6 @@
       i = end + 2;
     }
 
-    
-
-
     return out;
   }
 
@@ -122,6 +122,23 @@
     selections: new Map(), // wordKey -> { idx:number, color:string }
     nextIdx: 0,
   };
+
+  function setHighlightToolEnabled(enabled) {
+    const on = !!enabled;
+    state.highlightToolEnabled = on;
+
+    if (els.btnHighlightTool) {
+      els.btnHighlightTool.classList.toggle('is-active', on);
+      els.btnHighlightTool.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+
+    document.body.classList.toggle('tool-highlight-active', on);
+
+    if (on) {
+      try { window.getSelection()?.removeAllRanges(); } catch {}
+    }
+  }
+
 
   function normalizeWord(raw) {
     return String(raw ?? '')
@@ -244,7 +261,10 @@
   }
 
   function onWordTokenClick(e) {
+    if (!state.highlightToolEnabled) return;
     if (!els.viewReader.classList.contains('view-active')) return;
+
+    try { window.getSelection()?.removeAllRanges(); } catch {}
 
     const targetEl = (e.target && e.target.nodeType === Node.ELEMENT_NODE)
       ? e.target
@@ -876,8 +896,20 @@
     els.btnPrev.addEventListener('click', gotoPrev);
     els.btnNext.addEventListener('click', gotoNext);
 
+    if (els.btnHighlightTool) {
+      els.btnHighlightTool.addEventListener('click', () => {
+        setHighlightToolEnabled(!state.highlightToolEnabled);
+      });
+    }
+
     // Tap-to-highlight words inside reader blocks
     els.blocksContainer.addEventListener('click', onWordTokenClick);
+
+
+    // When the highlight tool is active, block native text selection (incl. double click).
+    document.addEventListener('selectstart', (ev) => {
+      if (state.highlightToolEnabled) ev.preventDefault();
+    }, true);
 
     els.btnMenu.addEventListener('click', openMenu);
     els.menuOverlay.addEventListener('click', closeMenu);
@@ -955,6 +987,8 @@
     initFirebase();
     wireEvents();
     installSwipe();
+
+    setHighlightToolEnabled(false);
 
     if (firebaseReady) {
       firebase.auth().onAuthStateChanged((user) => {

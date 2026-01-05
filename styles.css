@@ -68,6 +68,11 @@ body{
 
 .icon-btn:active{ transform: translateY(1px); }
 
+.icon-btn.is-active{
+  background: #bdbdbd;
+}
+
+
 .main{
   width: 100%;
   max-width: 980px;
@@ -102,8 +107,8 @@ body{
 
 .block-content{
   font-family: "Times New Roman", Times, "Noto Serif", serif;
-  font-size: 16px;
-  line-height: 1.35;
+  font-size: 14px;
+  line-height: 1.25;
   margin: 8px var(--pad) 0px var(--pad);
   white-space: pre-wrap;
   word-break: break-word;
@@ -115,23 +120,29 @@ body{
 
 /* Word tapping: mark occurrences with generated colors */
 .word-token{
-  cursor: pointer;
   touch-action: manipulation;
+}
+
+.tool-highlight-active .word-token{
+  cursor: pointer;
+}
+
+.tool-highlight-active, .tool-highlight-active *{
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 mark.word-token{
   background: var(--hl-color, #ffe08a);
   color: inherit;
-  /* Kein Padding: verhindert Layout-Shift (Text wird sonst länger/größer beim Markieren) */
   padding: 0;
   margin: 0;
   border: 0;
+  border-radius: 0.28em;
   font: inherit;
   line-height: inherit;
-  display: inline;
-  border-radius: 4px;
-  /* Optischer "Rand" ohne Einfluss auf Umbruch/Länge */
-  box-shadow: 0 0 0 0.12em var(--hl-color, #ffe08a);
+  box-shadow: 0 0 0 0.18em var(--hl-color, #ffe08a);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }

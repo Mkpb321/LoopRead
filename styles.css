@@ -122,8 +122,16 @@ body{
 mark.word-token{
   background: var(--hl-color, #ffe08a);
   color: inherit;
-  padding: 0 2px;
+  /* Kein Padding: verhindert Layout-Shift (Text wird sonst länger/größer beim Markieren) */
+  padding: 0;
+  margin: 0;
+  border: 0;
+  font: inherit;
+  line-height: inherit;
+  display: inline;
   border-radius: 4px;
+  /* Optischer "Rand" ohne Einfluss auf Umbruch/Länge */
+  box-shadow: 0 0 0 0.12em var(--hl-color, #ffe08a);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }

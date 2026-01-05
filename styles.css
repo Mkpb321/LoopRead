@@ -82,10 +82,10 @@ body{
 
 .block{ padding: 0; }
 
-/* Trennlinie (oben) über den ganzen Screen + Titelbox darunter */
+/* Trennlinie (unten) über den ganzen Screen */
 .block-sep{
   position: relative;
-  padding-top: 1px; /* verhindert, dass die Linie hinter dem Inhalt verschwindet */
+  height: 1px;
 }
 
 .block-sep::before{
@@ -95,23 +95,10 @@ body{
   left: 50%;
   transform: translateX(-50%);
   width: 100vw;
-  border-top: 1px solid var(--line);
+  height: 1px;
+  background: var(--line);
 }
-
-.block-title-label,
-.block-title-box{
-  font-size: 9px;
-  font-weight: 400;
-  color: #777;
-  margin: 2px 4px 10px var(--pad);
-  padding: 0;
-  background: none;
-  border: 0;
-  line-height: 1.1;
-  text-align: right;
-  user-select: none;
-}
-
+.block-title-box{ display:none; }
 
 .block-content{
   font-family: "Times New Roman", Times, "Noto Serif", serif;
@@ -125,9 +112,24 @@ body{
   direction: auto;
 }
 
+
+/* Blocktitel (unten rechts) – dezent, ohne Rahmen */
+.block-footer{
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 6px 6px 6px; /* weniger Abstand zum Rand */
+}
+
+.block-title-label{
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.1;
+  user-select: none;
+}
 /* First text block content larger */
 .blocks .block:first-of-type .block-content{
-  font-size: 22px;
+  font-size: 30px;
   line-height: 1.65;
 }
 

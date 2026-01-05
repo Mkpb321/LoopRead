@@ -272,27 +272,28 @@
       const article = document.createElement('article');
       article.className = 'block';
 
-      // Separator line (full width)
-      const sep = document.createElement('div');
-      sep.className = 'block-sep';
-
-      // Content
       const content = document.createElement('div');
       content.className = 'block-content';
       content.innerHTML = formatContent((b.content || '').trim());
 
-      // Title label (subtle, bottom-right)
+      const footer = document.createElement('div');
+      footer.className = 'block-footer';
+
       const titleLabel = document.createElement('div');
       titleLabel.className = 'block-title-label';
       titleLabel.textContent = (b.title || '').trim() || `Block ${i + 1}`;
+      footer.appendChild(titleLabel);
 
-      article.appendChild(sep);
+      const sep = document.createElement('div');
+      sep.className = 'block-sep';
+
       article.appendChild(content);
-      article.appendChild(titleLabel);
+      article.appendChild(footer);
+      article.appendChild(sep);
 
       els.blocksContainer.appendChild(article);
     });
-  }
+}
 
   function scrollTop() {
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -769,7 +770,8 @@
         els.btnLogin.disabled = true;
         await firebase.auth().signInWithEmailAndPassword(email, password);
       } catch (err) {
-        showToast((err && err.message) ? err.message : 'Login fehlgeschlagen.');
+        // Keine Backend-Details an den Nutzer weitergeben
+        showToast('Passwort oder Benutzername falsch.');
       } finally {
         els.btnLogin.disabled = false;
       }

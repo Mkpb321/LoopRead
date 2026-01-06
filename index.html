@@ -113,6 +113,22 @@
           <button id="btnImportCancel" class="btn btn-ghost" type="button">Abbrechen</button>
         </div>
       </form>
+    <!-- Delete Collections View -->
+    <section id="view-delete" class="view" aria-label="Sammlungen löschen">
+      <div class="add-header">
+        <h1 class="add-title">Sammlungen löschen</h1>
+        <p class="add-hint">Tippe auf ✕, um eine Sammlung zum Löschen zu markieren. Gelöscht wird erst beim Speichern.</p>
+      </div>
+
+      <div id="deleteCollections" class="collections-grid" aria-live="polite"></div>
+
+      <div class="add-form">
+        <div class="add-actions">
+          <button id="btnDeleteSave" class="btn" type="button">Speichern</button>
+          <button id="btnDeleteCancel" class="btn btn-ghost" type="button">Abbrechen</button>
+        </div>
+      </div>
+    </section>
     </section>
   </main>
 
@@ -125,6 +141,7 @@
       <button id="menuToReader" class="drawer-item" type="button">Lesen</button>
       <button id="menuToAdd" class="drawer-item" type="button">Neue Blocksammlung</button>
       <button id="menuToImport" class="drawer-item" type="button">Import</button>
+      <button id="menuToDelete" class="drawer-item" type="button">Sammlungen löschen</button>
 
       <div class="drawer-sep" role="separator" aria-hidden="true"></div>
 

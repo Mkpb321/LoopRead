@@ -401,3 +401,69 @@ body.auth-locked .overlay{
   display: flex;
   gap: 8px;
 }
+
+/* Delete collections view */
+.collections-grid{
+  padding: 6px var(--pad) 18px var(--pad);
+  display: grid;
+  gap: 10px;
+}
+
+.collection-card{
+  position: relative;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 10px 10px 10px 10px;
+}
+
+.collection-card-title{
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  padding-right: calc(var(--tap) + 10px);
+}
+
+.collection-card-preview{
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+}
+
+.collection-del-btn{
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: var(--tap);
+  height: var(--tap);
+  border: 1px solid var(--line);
+  background: var(--btn);
+  color: var(--fg);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collection-del-btn:active{ transform: translateY(1px); }
+
+.collection-card-badge{
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.collection-card.is-marked{
+  opacity: 0.55;
+}
+
+.collection-card.is-marked .collection-card-title{
+  text-decoration: line-through;
+}

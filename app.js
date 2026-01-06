@@ -19,14 +19,18 @@
     viewReader: document.getElementById('view-reader'),
     viewAdd: document.getElementById('view-add'),
     viewImport: document.getElementById('view-import'),
+    viewDelete: document.getElementById('view-delete'),
 
     blocksContainer: document.getElementById('blocksContainer'),
+
+    deleteCollections: document.getElementById('deleteCollections'),
 
     menuOverlay: document.getElementById('menuOverlay'),
     menuDrawer: document.getElementById('menuDrawer'),
     menuToReader: document.getElementById('menuToReader'),
     menuToAdd: document.getElementById('menuToAdd'),
     menuToImport: document.getElementById('menuToImport'),
+    menuToDelete: document.getElementById('menuToDelete'),
     menuLoadSample: document.getElementById('menuLoadSample'),
     menuClearAll: document.getElementById('menuClearAll'),
     menuLogout: document.getElementById('menuLogout'),
@@ -39,6 +43,9 @@
     importFile: document.getElementById('importFile'),
     importInfo: document.getElementById('importInfo'),
     btnImportCancel: document.getElementById('btnImportCancel'),
+
+    btnDeleteSave: document.getElementById('btnDeleteSave'),
+    btnDeleteCancel: document.getElementById('btnDeleteCancel'),
 
     toast: document.getElementById('toast'),
 
@@ -61,6 +68,7 @@
     menuOpen: false,
     confirmOpen: false,
     uid: null,
+    activeView: 'reader',
     highlightToolEnabled: false,
   };
 
@@ -399,6 +407,7 @@
       els.viewReader.classList.remove('view-active');
       els.viewAdd.classList.remove('view-active');
       els.viewImport.classList.remove('view-active');
+      els.viewDelete.classList.remove('view-active');
     }
   }
 
@@ -415,13 +424,30 @@
       return;
     }
 
+    const prev = state.activeView;
+    state.activeView = view;
+
+    // Leaving delete view discards any draft changes.
+    if (prev === 'delete' && view !== 'delete') {
+      clearDeleteDraft();
+    }
+
     els.viewReader.classList.toggle('view-active', view === 'reader');
     els.viewAdd.classList.toggle('view-active', view === 'add');
     els.viewImport.classList.toggle('view-active', view === 'import');
+    els.viewDelete.classList.toggle('view-active', view === 'delete');
 
     const hasCollections = state.collections.length > 0;
-    els.btnPrev.disabled = !hasCollections;
-    els.btnNext.disabled = !hasCollections;
+    const inReader = (view === 'reader');
+
+    els.btnPrev.disabled = !hasCollections || !inReader;
+    els.btnNext.disabled = !hasCollections || !inReader;
+
+    // Highlight tooling makes only sense in reader view.
+    els.btnHighlightTool.disabled = !inReader;
+    els.btnClearHighlights.disabled = !inReader;
+
+    if (!inReader) setHighlightToolEnabled(false);
 
     if (view === 'add') {
       buildEditors(3);
@@ -434,9 +460,16 @@
       resetImportForm();
       els.importFile.focus();
     }
+
+    if (view === 'delete') {
+      if (prev !== 'delete') resetDeleteDraft();
+      renderDeleteView();
+      const firstBtn = els.deleteCollections?.querySelector?.('button');
+      if (firstBtn) firstBtn.focus();
+    }
   }
 
-  function renderNav() {
+function renderNav() {
     const n = state.collections.length;
     els.navIndex.textContent = n === 0 ? '0/0' : `${state.currentIndex + 1}/${n}`;
   }
@@ -500,6 +533,7 @@
 
   function gotoNext() {
     if (!state.uid) return;
+    if (!els.viewReader.classList.contains('view-active')) return;
     const n = state.collections.length;
     if (n === 0) return;
     state.currentIndex = (state.currentIndex + 1) % n;
@@ -511,6 +545,7 @@
 
   function gotoPrev() {
     if (!state.uid) return;
+    if (!els.viewReader.classList.contains('view-active')) return;
     const n = state.collections.length;
     if (n === 0) return;
     state.currentIndex = (state.currentIndex - 1 + n) % n;
@@ -684,6 +719,175 @@
     renderBlocks();
     setView('reader');
     closeMenu();
+    scrollTop();
+  }
+
+  // --- Delete collections (draft; applied on save) ---
+  /** @type {{ marked:Set<number> } | null} */
+  let deleteDraft = null;
+
+  function resetDeleteDraft() {
+    deleteDraft = { marked: new Set() };
+    updateDeleteActions();
+  }
+
+  function clearDeleteDraft() {
+    deleteDraft = null;
+  }
+
+  function snippet(text, maxLen = 80) {
+    const s = String(text ?? '').replace(/\s+/g, ' ').trim();
+    if (s.length <= maxLen) return s;
+    return s.slice(0, Math.max(0, maxLen - 1)) + '…';
+  }
+
+  function updateDeleteActions() {
+    if (!els.btnDeleteSave) return;
+    const n = deleteDraft?.marked?.size || 0;
+    els.btnDeleteSave.disabled = n === 0;
+    els.btnDeleteSave.textContent = n === 0 ? 'Speichern' : `Speichern (${n})`;
+  }
+
+  function toggleDeleteMark(idx) {
+    if (!deleteDraft) return;
+
+    if (deleteDraft.marked.has(idx)) {
+      deleteDraft.marked.delete(idx);
+      renderDeleteView();
+      updateDeleteActions();
+      return;
+    }
+
+    // No confirmation needed here: deletions are only applied when the user presses "Speichern".
+    deleteDraft.marked.add(idx);
+    renderDeleteView();
+    updateDeleteActions();
+  }
+  function renderDeleteView() {
+    if (!els.deleteCollections) return;
+
+    els.deleteCollections.innerHTML = '';
+
+    if (state.collections.length === 0) {
+      const div = document.createElement('div');
+      div.className = 'empty';
+      div.innerHTML = '<strong>Keine Sammlungen vorhanden.</strong>';
+      els.deleteCollections.appendChild(div);
+      updateDeleteActions();
+      return;
+    }
+
+    state.collections.forEach((collection, idx) => {
+      const card = document.createElement('div');
+      card.className = 'collection-card';
+
+      const isMarked = !!deleteDraft?.marked?.has(idx);
+      if (isMarked) card.classList.add('is-marked');
+
+      const title = document.createElement('div');
+      title.className = 'collection-card-title';
+      const blockCount = Array.isArray(collection) ? collection.length : 0;
+      title.textContent = `Sammlung ${idx + 1} (${blockCount} Block${blockCount === 1 ? '' : 'e'})`;
+
+      const preview = document.createElement('div');
+      preview.className = 'collection-card-preview';
+
+      const blocks = Array.isArray(collection) ? collection : [];
+      const lines = blocks.slice(0, 2).map((b, bi) => {
+        const t = (b?.title || '').trim() || `Block ${bi + 1}`;
+        const c = snippet((b?.content || '').trim(), 90);
+        return `${t}: ${c}`;
+      });
+
+      if (blocks.length > 2) lines.push('…');
+
+      preview.textContent = lines.length ? lines.join('\n') : 'Diese Sammlung ist leer.';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'collection-del-btn';
+      btn.textContent = isMarked ? '↩' : '✕';
+      btn.setAttribute('aria-label', isMarked ? 'Löschung rückgängig machen' : 'Sammlung zum Löschen markieren');
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleDeleteMark(idx);
+      });
+
+      card.appendChild(title);
+      card.appendChild(preview);
+      card.appendChild(btn);
+
+      if (isMarked) {
+        const badge = document.createElement('div');
+        badge.className = 'collection-card-badge';
+        badge.textContent = 'Zum Löschen markiert';
+        card.appendChild(badge);
+      }
+
+      els.deleteCollections.appendChild(card);
+    });
+
+    updateDeleteActions();
+  }
+
+  function countMarkedBefore(idx, marked) {
+    let n = 0;
+    for (const m of marked) if (m < idx) n++;
+    return n;
+  }
+
+  function computeNewIndexAfterDeletion(oldIndex, marked, total) {
+    if (total <= 0) return 0;
+    if (!marked || marked.size === 0) return Math.max(0, Math.min(oldIndex, total - 1));
+
+    const isDeleted = marked.has(oldIndex);
+
+    if (!isDeleted) {
+      return Math.max(0, oldIndex - countMarkedBefore(oldIndex, marked));
+    }
+
+    for (let j = oldIndex + 1; j < total; j++) {
+      if (!marked.has(j)) return Math.max(0, j - countMarkedBefore(j, marked));
+    }
+    for (let j = oldIndex - 1; j >= 0; j--) {
+      if (!marked.has(j)) return Math.max(0, j - countMarkedBefore(j, marked));
+    }
+
+    return 0;
+  }
+
+  function applyDeleteDraft() {
+    const marked = deleteDraft?.marked;
+    const count = marked?.size || 0;
+
+    if (!marked || count === 0) {
+      setView('reader');
+      scrollTop();
+      return;
+    }
+
+    const total = state.collections.length;
+    const oldIdx = state.currentIndex;
+
+    const newIdx = computeNewIndexAfterDeletion(oldIdx, marked, total);
+
+    state.collections = state.collections.filter((_, idx) => !marked.has(idx));
+    state.currentIndex = state.collections.length === 0 ? 0 : Math.min(newIdx, state.collections.length - 1);
+
+    saveState();
+    renderNav();
+    renderBlocks();
+
+    clearDeleteDraft();
+    setView('reader');
+    scrollTop();
+    showToast(`Gelöscht: ${count} Sammlung(en).`);
+  }
+
+  function cancelDeleteDraft() {
+    clearDeleteDraft();
+    setView('reader');
     scrollTop();
   }
 
@@ -938,6 +1142,7 @@
     els.menuToReader.addEventListener('click', () => { setView('reader'); closeMenu(); });
     els.menuToAdd.addEventListener('click', () => { setView('add'); closeMenu(); });
     els.menuToImport.addEventListener('click', () => { setView('import'); closeMenu(); });
+    els.menuToDelete.addEventListener('click', () => { setView('delete'); closeMenu(); });
 
     els.menuLoadSample.addEventListener('click', loadSamples);
     els.menuClearAll.addEventListener('click', clearAll);
@@ -956,6 +1161,9 @@
     });
 
     els.btnImportCancel.addEventListener('click', () => { setView('reader'); scrollTop(); });
+
+    els.btnDeleteCancel.addEventListener('click', cancelDeleteDraft);
+    els.btnDeleteSave.addEventListener('click', applyDeleteDraft);
 
     els.importForm.addEventListener('submit', async (e) => {
       e.preventDefault();

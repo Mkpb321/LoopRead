@@ -30,6 +30,7 @@
     menuToReader: document.getElementById('menuToReader'),
     menuToAdd: document.getElementById('menuToAdd'),
     menuToImport: document.getElementById('menuToImport'),
+    menuExport: document.getElementById('menuExport'),
     menuToDelete: document.getElementById('menuToDelete'),
     menuLoadSample: document.getElementById('menuLoadSample'),
     menuClearAll: document.getElementById('menuClearAll'),
@@ -42,6 +43,7 @@
     importForm: document.getElementById('importForm'),
     importFile: document.getElementById('importFile'),
     importInfo: document.getElementById('importInfo'),
+    btnExport: document.getElementById('btnExport'),
     btnImportCancel: document.getElementById('btnImportCancel'),
 
     btnDeleteSave: document.getElementById('btnDeleteSave'),
@@ -988,90 +990,108 @@ function renderNav() {
     }
 
     const sheetNames = wb.SheetNames || [];
-    if (sheetNames.length !== 1) {
-      showToast('Import abgebrochen: Die Datei muss genau ein Tabellenblatt (Sheet) enthalten.');
+    if (sheetNames.length === 0) {
+      showToast('Import abgebrochen: Keine Tabellenblätter gefunden.');
       return;
     }
 
-    const sheet = wb.Sheets[sheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+    const sheetErr = (sheetName, msg) => `Import abgebrochen (Sheet "${sheetName}"): ${msg}`;
 
-    if (!rows || rows.length === 0) {
-      showToast('Import abgebrochen: Datei ist leer.');
-      return;
-    }
+    const parseSheetToCollections = (sheet, sheetName) => {
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
 
-    const header = rows[0] || [];
-    let lastTitleCol = -1;
-    for (let c = 0; c < header.length; c++) {
-      if (!isEmptyCell(header[c])) lastTitleCol = c;
-    }
-    if (lastTitleCol < 0) {
-      showToast('Import abgebrochen: Keine Titel in Zeile 1 gefunden.');
-      return;
-    }
-
-    // Header validation: no gaps within 0..lastTitleCol
-    const titles = [];
-    for (let c = 0; c <= lastTitleCol; c++) {
-      const t = String(header[c] ?? '').trim();
-      if (!t) {
-        showToast(`Import abgebrochen: Titel fehlt in Zeile 1, Spalte ${columnLetter(c)}.`);
-        return;
-      }
-      titles.push(t);
-    }
-
-    // Data rows start at index 1 (Excel row 2)
-    let dataRows = rows.slice(1);
-
-    // Ignore trailing empty rows at end
-    while (dataRows.length > 0 && isRowEmpty(dataRows[dataRows.length - 1], lastTitleCol)) {
-      dataRows.pop();
-    }
-
-    if (dataRows.length === 0) {
-      showToast('Import abgebrochen: Keine Datenzeilen gefunden (ab Zeile 2).');
-      return;
-    }
-
-    const imported = [];
-
-    for (let r = 0; r < dataRows.length; r++) {
-      const row = dataRows[r] || [];
-      const excelRowNumber = r + 2; // since header is row 1
-
-      // Empty row in the middle is not allowed
-      if (isRowEmpty(row, lastTitleCol)) {
-        showToast(`Import abgebrochen: Zeile ${excelRowNumber} ist leer.`);
-        return;
+      if (!rows || rows.length === 0) {
+        throw new Error(sheetErr(sheetName, 'Tabellenblatt ist leer.'));
       }
 
-      const collection = [];
+      const header = rows[0] || [];
+      let lastTitleCol = -1;
+      for (let c = 0; c < header.length; c++) {
+        if (!isEmptyCell(header[c])) lastTitleCol = c;
+      }
+      if (lastTitleCol < 0) {
+        throw new Error(sheetErr(sheetName, 'Keine Titel in Zeile 1 gefunden.'));
+      }
+
+      // Header validation: no gaps within 0..lastTitleCol
+      const titles = [];
       for (let c = 0; c <= lastTitleCol; c++) {
-        const raw = row[c];
-        const content = String(raw ?? '').trim();
-        if (!content) {
-          showToast(`Import abgebrochen: Leerzelle in Zeile ${excelRowNumber}, Spalte ${columnLetter(c)} (Titel: "${titles[c]}").`);
-          return;
+        const t = String(header[c] ?? '').trim();
+        if (!t) {
+          throw new Error(sheetErr(sheetName, `Titel fehlt in Zeile 1, Spalte ${columnLetter(c)}.`));
         }
-        collection.push({ title: titles[c], content });
+        titles.push(t);
       }
 
-      imported.push(collection);
+      // Data rows start at index 1 (Excel row 2)
+      let dataRows = rows.slice(1);
+
+      // Ignore trailing empty rows at end
+      while (dataRows.length > 0 && isRowEmpty(dataRows[dataRows.length - 1], lastTitleCol)) {
+        dataRows.pop();
+      }
+
+      if (dataRows.length === 0) {
+        throw new Error(sheetErr(sheetName, 'Keine Datenzeilen gefunden (ab Zeile 2).'));
+      }
+
+      const imported = [];
+
+      for (let r = 0; r < dataRows.length; r++) {
+        const row = dataRows[r] || [];
+        const excelRowNumber = r + 2; // since header is row 1
+
+        // Empty row in the middle is not allowed
+        if (isRowEmpty(row, lastTitleCol)) {
+          throw new Error(sheetErr(sheetName, `Zeile ${excelRowNumber} ist leer.`));
+        }
+
+        const collection = [];
+        for (let c = 0; c <= lastTitleCol; c++) {
+          const raw = row[c];
+          const content = String(raw ?? '').trim();
+          if (!content) {
+            throw new Error(sheetErr(sheetName, `Leerzelle in Zeile ${excelRowNumber}, Spalte ${columnLetter(c)} (Titel: "${titles[c]}").`));
+          }
+          collection.push({ title: titles[c], content });
+        }
+
+        imported.push(collection);
+      }
+
+      if (imported.length === 0) {
+        throw new Error(sheetErr(sheetName, 'Keine gültigen Daten gefunden.'));
+      }
+
+      return imported;
+    };
+
+    /** @type {Array<Array<{title:string, content:string}>>} */
+    const importedAll = [];
+
+    try {
+      for (const sheetName of sheetNames) {
+        const sheet = wb.Sheets[sheetName];
+        if (!sheet) throw new Error(sheetErr(sheetName, 'Tabellenblatt konnte nicht gelesen werden.'));
+        const importedSheet = parseSheetToCollections(sheet, sheetName);
+        importedAll.push(...importedSheet);
+      }
+    } catch (e) {
+      showToast(e?.message || 'Import fehlgeschlagen.');
+      return;
     }
 
-    if (imported.length === 0) {
+    if (importedAll.length === 0) {
       showToast('Import abgebrochen: Keine gültigen Daten gefunden.');
       return;
     }
 
     if (mode === 'replace') {
-      state.collections = imported;
+      state.collections = importedAll;
       state.currentIndex = 0;
     } else {
       const oldLen = state.collections.length;
-      state.collections = state.collections.concat(imported);
+      state.collections = state.collections.concat(importedAll);
       state.currentIndex = oldLen; // springe zur ersten importierten Sammlung
       clampIndex();
     }
@@ -1083,7 +1103,7 @@ function renderNav() {
     closeMenu();
     scrollTop();
 
-    showToast(`Import erfolgreich: ${imported.length} Blocksammlung(en) übernommen.`);
+    showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${sheetNames.length} Tabellenblatt(ern) übernommen.`);
   }
 
   // Firebase Auth (Login only)
@@ -1142,6 +1162,7 @@ function renderNav() {
     els.menuToReader.addEventListener('click', () => { setView('reader'); closeMenu(); });
     els.menuToAdd.addEventListener('click', () => { setView('add'); closeMenu(); });
     els.menuToImport.addEventListener('click', () => { setView('import'); closeMenu(); });
+    els.menuExport.addEventListener('click', () => { closeMenu(); exportAllAsXlsx(); });
     els.menuToDelete.addEventListener('click', () => { setView('delete'); closeMenu(); });
 
     els.menuLoadSample.addEventListener('click', loadSamples);
@@ -1161,6 +1182,7 @@ function renderNav() {
     });
 
     els.btnImportCancel.addEventListener('click', () => { setView('reader'); scrollTop(); });
+    els.btnExport.addEventListener('click', exportAllAsXlsx);
 
     els.btnDeleteCancel.addEventListener('click', cancelDeleteDraft);
     els.btnDeleteSave.addEventListener('click', applyDeleteDraft);
@@ -1204,7 +1226,147 @@ function renderNav() {
     });
   }
 
-  function init() {
+  // --- Export (Excel .xlsx; import-kompatibel) ---
+  function sanitizeFilenamePart(value) {
+    return String(value || '')
+      .replace(/[\\\/:*?"<>|]/g, '')
+      .replace(/\s+/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 60);
+  }
+
+  function sanitizeSheetName(value) {
+    // Excel constraints: max 31 chars; cannot contain : \ / ? * [ ]
+    let s = String(value || '').trim();
+    s = s.replace(/[:\\\/\?\*\[\]]/g, ' ');
+    s = s.replace(/\s+/g, ' ').trim();
+    if (!s) s = 'Sheet';
+    if (s.length > 31) s = s.slice(0, 31).trim();
+    if (!s) s = 'Sheet';
+    return s;
+  }
+
+  function uniqueSheetName(base, used) {
+    let name = sanitizeSheetName(base);
+    if (!used.has(name)) {
+      used.add(name);
+      return name;
+    }
+    for (let i = 2; i < 10_000; i++) {
+      const suffix = `_${i}`;
+      const maxBase = 31 - suffix.length;
+      const candidate = sanitizeSheetName(name.slice(0, maxBase)) + suffix;
+      if (!used.has(candidate)) {
+        used.add(candidate);
+        return candidate;
+      }
+    }
+    // Fallback (should never happen)
+    const fallback = `Sheet_${Date.now()}`;
+    used.add(fallback.slice(0, 31));
+    return fallback.slice(0, 31);
+  }
+
+  function triggerDownloadBlob(filename, blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }
+
+  function formatLocalTimestampForFilename(date = new Date()) {
+  // Use the device's local time zone for the export filename.
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const y = date.getFullYear();
+  const m = pad2(date.getMonth() + 1);
+  const d = pad2(date.getDate());
+  const hh = pad2(date.getHours());
+  const mm = pad2(date.getMinutes());
+  const ss = pad2(date.getSeconds());
+  // Format: YYYY-MM-DD-HHmmss (no separators within the time component)
+  return `${y}-${m}-${d}-${hh}${mm}${ss}`;
+}
+
+    const y = parts.year || '0000';
+    const m = parts.month || '00';
+    const d = parts.day || '00';
+    const hh = parts.hour || '00';
+    const mm = parts.minute || '00';
+    const ss = parts.second || '00';
+    return `${y}-${m}-${d}_${hh}-${mm}-${ss}`;
+  }
+
+  function exportAllAsXlsx() {
+    if (!window.XLSX) {
+      showToast('Export-Bibliothek (XLSX) nicht geladen.');
+      return;
+    }
+    if (!Array.isArray(state.collections) || state.collections.length === 0) {
+      showToast('Keine Sammlungen zum Exportieren vorhanden.');
+      return;
+    }
+
+    // Group by exact title sequence (order-sensitive)
+    /** @type {Map<string, {titles:string[], collections:Array<Array<{title:string, content:string}>>}>} */
+    const groups = new Map();
+
+    for (const col of state.collections) {
+      const titles = (col || []).map(b => String(b?.title ?? '').trim());
+      const sig = titles.join('\u0001'); // order-sensitive signature
+      if (!groups.has(sig)) groups.set(sig, { titles, collections: [] });
+      groups.get(sig).collections.push(col);
+    }
+
+    const wb = XLSX.utils.book_new();
+    const usedNames = new Set();
+    let sheetIndex = 0;
+
+    for (const g of groups.values()) {
+      sheetIndex++;
+      const titles = g.titles;
+      if (!titles.length) continue;
+
+      const aoa = [];
+      aoa.push(titles);
+
+      for (const col of g.collections) {
+        const row = (col || []).map(b => String(b?.content ?? '').trim());
+        // Safety: enforce same shape as header
+        if (row.length !== titles.length) {
+          showToast('Export abgebrochen: Uneinheitliche Blockanzahl innerhalb einer Titel-Gruppe.');
+          return;
+        }
+        aoa.push(row);
+      }
+
+      const hint = sanitizeSheetName(titles.slice(0, 3).join(' - '));
+      const baseName = groups.size === 1 ? 'Export' : `${sheetIndex} ${hint}`;
+      const sheetName = uniqueSheetName(baseName, usedNames);
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    }
+
+    if ((wb.SheetNames || []).length === 0) {
+      showToast('Export abgebrochen: Keine gültigen Daten gefunden.');
+      return;
+    }
+
+    const filename = `loopread_export_${formatLocalTimestampForFilename()}.xlsx`;
+    const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    triggerDownloadBlob(filename, blob);
+
+    showToast(`Export gestartet: 1 Excel-Datei mit ${wb.SheetNames.length} Tabellenblatt(ern).`);
+  }
+
+
+function init() {
     // Default: locked until auth says otherwise
     setAuthLocked(true);
 

@@ -85,7 +85,7 @@
       <div class="add-header">
         <h1 class="add-title">Import</h1>
         <p class="add-hint">
-          Zeile 1 enthält die Titel (Spalten). Ab Zeile 2 ist jede Zeile eine Blocksammlung. Pflichtfelder dürfen nicht leer sein.
+          Je Tabellenblatt: Zeile 1 enthält die Titel (Spalten). Ab Zeile 2 ist jede Zeile eine Blocksammlung. Pflichtfelder dürfen nicht leer sein. Mehrere Tabellenblätter werden gemeinsam importiert.
         </p>
       </div>
 
@@ -111,6 +111,11 @@
         <div class="add-actions">
           <button id="btnImport" class="btn" type="submit">Importieren</button>
           <button id="btnImportCancel" class="btn btn-ghost" type="button">Abbrechen</button>
+        </div>
+        <div class="drawer-sep" role="separator" aria-hidden="true"></div>
+        <p class="add-hint">Exportiert alle gespeicherten Sammlungen als Excel-Datei (.xlsx). Wenn Titel/Reihenfolge zwischen Sammlungen abweichen, werden mehrere Tabellenblätter erzeugt.</p>
+        <div class="add-actions">
+          <button id="btnExport" class="btn" type="button">Exportieren (Excel)</button>
         </div>
       </form>
     </section>
@@ -142,8 +147,8 @@
       <button id="menuToReader" class="drawer-item" type="button">Lesen</button>
       <button id="menuToAdd" class="drawer-item" type="button">Neue Blocksammlung</button>
       <button id="menuToImport" class="drawer-item" type="button">Import</button>
+      <button id="menuExport" class="drawer-item" type="button">Export (Excel)</button>
       <button id="menuToDelete" class="drawer-item" type="button">Sammlungen löschen</button>
-
       <div class="drawer-sep" role="separator" aria-hidden="true"></div>
 
       <button id="menuLoadSample" class="drawer-item" type="button">Probedaten laden</button>

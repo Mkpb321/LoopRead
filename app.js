@@ -58,6 +58,8 @@
     btnDeleteCancel: document.getElementById('btnDeleteCancel'),
 
     toast: document.getElementById('toast'),
+    toastMsg: document.getElementById('toastMsg'),
+    toastClose: document.getElementById('toastClose'),
 
     confirmOverlay: document.getElementById('confirmOverlay'),
     confirmBox: document.getElementById('confirmBox'),
@@ -114,18 +116,31 @@ function isBlockHidden(idx) {
 
   // --- Toast (kein alert für Fehlermeldungen) ---
   let toastTimer = null;
+  function hideToast() {
+    if (toastTimer) window.clearTimeout(toastTimer);
+    toastTimer = null;
+    els.toast.hidden = true;
+  }
+
   function showToast(message) {
     const msg = String(message || '').trim();
     if (!msg) return;
 
-    els.toast.textContent = msg;
+    if (els.toastMsg) {
+      els.toastMsg.textContent = msg;
+    } else {
+      // Fallback if markup was not upgraded for some reason
+      els.toast.textContent = msg;
+    }
+
     els.toast.hidden = false;
 
     if (toastTimer) window.clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => {
-      els.toast.hidden = true;
+      hideToast();
     }, 3400);
   }
+
 
 
   function escapeHtml(s) {
@@ -1345,6 +1360,15 @@ function cancelHideDraft() {
     els.confirmOverlay.addEventListener('click', () => closeConfirm(false));
     els.confirmCancel.addEventListener('click', () => closeConfirm(false));
     els.confirmOk.addEventListener('click', () => closeConfirm(true));
+
+    // Toast close
+    if (els.toastClose) {
+      els.toastClose.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        hideToast();
+      });
+    }
 
     els.menuToReader.addEventListener('click', () => { setView('reader'); closeMenu(); });
     els.menuToAdd.addEventListener('click', () => { setView('add'); closeMenu(); });

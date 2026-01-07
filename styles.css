@@ -340,7 +340,37 @@ body.tool-highlight-active select{
   padding: 10px 12px;
   font-size: 13px;
   z-index: 120;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
+
+.toast-msg{
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-close{
+  border: 1px solid var(--line);
+  background: var(--btn);
+  color: var(--fg);
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 16px;
+  padding: 0;
+}
+
+.toast-close:active{
+  transform: translateY(1px);
+}
+
 
 /* Login view */
 .login-wrap{

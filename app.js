@@ -1279,7 +1279,7 @@ function renderNav() {
     window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
   }
 
-  function formatLocalTimestampForFilename(date = new Date()) {
+function formatLocalTimestampForFilename(date = new Date()) {
   // Use the device's local time zone for the export filename.
   const pad2 = (n) => String(n).padStart(2, '0');
   const y = date.getFullYear();
@@ -1292,16 +1292,7 @@ function renderNav() {
   return `${y}-${m}-${d}-${hh}${mm}${ss}`;
 }
 
-    const y = parts.year || '0000';
-    const m = parts.month || '00';
-    const d = parts.day || '00';
-    const hh = parts.hour || '00';
-    const mm = parts.minute || '00';
-    const ss = parts.second || '00';
-    return `${y}-${m}-${d}_${hh}-${mm}-${ss}`;
-  }
-
-  function exportAllAsXlsx() {
+function exportAllAsXlsx() {
     if (!window.XLSX) {
       showToast('Export-Bibliothek (XLSX) nicht geladen.');
       return;

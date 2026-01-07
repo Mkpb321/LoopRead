@@ -467,3 +467,58 @@ body.auth-locked .overlay{
 .collection-card.is-marked .collection-card-title{
   text-decoration: line-through;
 }
+
+
+/* Hide blocks view */
+.hide-blocks-list{
+  padding: 6px var(--pad) 18px var(--pad);
+  display: grid;
+  gap: 10px;
+}
+
+.hide-block-row{
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hide-block-meta{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.hide-block-title{
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.hide-block-sub{
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 0.9;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.hide-block-toggle{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.hide-block-toggle input{
+  accent-color: #000;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+}

@@ -21,6 +21,13 @@
     viewImport: document.getElementById('view-import'),
     viewDelete: document.getElementById('view-delete'),
 
+    viewHide: document.getElementById('view-hide'),
+
+    hideBlocksList: document.getElementById('hideBlocksList'),
+
+    btnHideSave: document.getElementById('btnHideSave'),
+    btnHideCancel: document.getElementById('btnHideCancel'),
+
     blocksContainer: document.getElementById('blocksContainer'),
 
     deleteCollections: document.getElementById('deleteCollections'),
@@ -32,6 +39,7 @@
     menuToImport: document.getElementById('menuToImport'),
     menuExport: document.getElementById('menuExport'),
     menuToDelete: document.getElementById('menuToDelete'),
+    menuToHide: document.getElementById('menuToHide'),
     menuLoadSample: document.getElementById('menuLoadSample'),
     menuClearAll: document.getElementById('menuClearAll'),
     menuLogout: document.getElementById('menuLogout'),
@@ -63,9 +71,10 @@
     btnLogin: document.getElementById('btnLogin'),
   };
 
-  /** @type {{collections: Array<Array<{title:string, content:string}>>, currentIndex:number, menuOpen:boolean, uid:string|null}} */
+  /** @type {{collections: Array<Array<{title:string, content:string}>>, hiddenBlocks:number[], currentIndex:number, menuOpen:boolean, uid:string|null}} */
   const state = {
     collections: [],
+    hiddenBlocks: [],
     currentIndex: 0,
     menuOpen: false,
     confirmOpen: false,
@@ -73,6 +82,35 @@
     activeView: 'reader',
     highlightToolEnabled: false,
   };
+
+  // --- Global hidden text blocks (by index; 0-based) ---
+let hiddenBlocksSet = new Set();
+
+function normalizeHiddenBlocks(list) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const v of list) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) continue;
+    const i = Math.trunc(n);
+    if (i < 0) continue;
+    if (seen.has(i)) continue;
+    seen.add(i);
+    out.push(i);
+  }
+  out.sort((a, b) => a - b);
+  return out;
+}
+
+function setHiddenBlocks(list) {
+  state.hiddenBlocks = normalizeHiddenBlocks(list);
+  hiddenBlocksSet = new Set(state.hiddenBlocks);
+}
+
+function isBlockHidden(idx) {
+  return hiddenBlocksSet.has(idx);
+}
 
   // --- Toast (kein alert für Fehlermeldungen) ---
   let toastTimer = null;
@@ -371,6 +409,7 @@
   }
 
   function loadState() {
+    setHiddenBlocks([]);
     const raw = localStorage.getItem(storageKey(STORAGE_KEY));
     const idxRaw = localStorage.getItem(storageKey(STORAGE_INDEX_KEY));
 
@@ -378,6 +417,9 @@
       const parsed = safeParse(raw, null);
       if (parsed && Array.isArray(parsed.collections)) {
         state.collections = parsed.collections;
+        if (Array.isArray(parsed.hiddenBlocks)) setHiddenBlocks(parsed.hiddenBlocks);
+      } else if (parsed && Array.isArray(parsed.hiddenBlocks)) {
+        setHiddenBlocks(parsed.hiddenBlocks);
       }
     }
 
@@ -390,7 +432,7 @@
   }
 
   function saveState() {
-    localStorage.setItem(storageKey(STORAGE_KEY), JSON.stringify({ collections: state.collections }));
+    localStorage.setItem(storageKey(STORAGE_KEY), JSON.stringify({ collections: state.collections, hiddenBlocks: state.hiddenBlocks }));
     localStorage.setItem(storageKey(STORAGE_INDEX_KEY), String(state.currentIndex));
   }
 
@@ -416,6 +458,7 @@
   function resetInMemoryState() {
     state.collections = [];
     state.currentIndex = 0;
+    setHiddenBlocks([]);
     clearHighlights();
     setHighlightToolEnabled(false);
   }
@@ -429,15 +472,19 @@
     const prev = state.activeView;
     state.activeView = view;
 
-    // Leaving delete view discards any draft changes.
+    // Leaving delete/hide views discards any draft changes.
     if (prev === 'delete' && view !== 'delete') {
       clearDeleteDraft();
+    }
+    if (prev === 'hide' && view !== 'hide') {
+      clearHideDraft();
     }
 
     els.viewReader.classList.toggle('view-active', view === 'reader');
     els.viewAdd.classList.toggle('view-active', view === 'add');
     els.viewImport.classList.toggle('view-active', view === 'import');
     els.viewDelete.classList.toggle('view-active', view === 'delete');
+    els.viewHide.classList.toggle('view-active', view === 'hide');
 
     const hasCollections = state.collections.length > 0;
     const inReader = (view === 'reader');
@@ -469,6 +516,13 @@
       const firstBtn = els.deleteCollections?.querySelector?.('button');
       if (firstBtn) firstBtn.focus();
     }
+
+    if (view === 'hide') {
+      if (prev !== 'hide') resetHideDraft();
+      renderHideView();
+      const first = els.hideBlocksList?.querySelector?.('input');
+      if (first) first.focus();
+    }
   }
 
 function renderNav() {
@@ -499,7 +553,11 @@ function renderNav() {
       return;
     }
 
+    let shown = 0;
+
     blocks.forEach((b, i) => {
+      if (isBlockHidden(i)) return;
+      shown++;
       const article = document.createElement('article');
       article.className = 'block';
 
@@ -525,6 +583,13 @@ function renderNav() {
 
       els.blocksContainer.appendChild(article);
     });
+    if (shown === 0) {
+      const div = document.createElement('div');
+      div.className = 'empty';
+      div.textContent = 'Alle Textblöcke dieser Sammlung sind ausgeblendet.';
+      els.blocksContainer.appendChild(div);
+      return;
+    }
 
     applyAllHighlights();
 }
@@ -795,13 +860,14 @@ function renderNav() {
       preview.className = 'collection-card-preview';
 
       const blocks = Array.isArray(collection) ? collection : [];
-      const lines = blocks.slice(0, 2).map((b, bi) => {
+      const visibleBlocks = blocks.filter((_, bi) => !isBlockHidden(bi));
+      const lines = visibleBlocks.slice(0, 2).map((b, bi) => {
         const t = (b?.title || '').trim() || `Block ${bi + 1}`;
         const c = snippet((b?.content || '').trim(), 90);
         return `${t}: ${c}`;
       });
 
-      if (blocks.length > 2) lines.push('…');
+      if (visibleBlocks.length > 2) lines.push('…');
 
       preview.textContent = lines.length ? lines.join('\n') : 'Diese Sammlung ist leer.';
 
@@ -886,6 +952,127 @@ function renderNav() {
     scrollTop();
     showToast(`Gelöscht: ${count} Sammlung(en).`);
   }
+
+// --- Hide blocks (draft; applied on save) ---
+/** @type {{ hidden:Set<number>, maxShown:number } | null} */
+let hideDraft = null;
+
+function maxBlocksAcrossCollections() {
+  let max = 0;
+  for (const c of state.collections) {
+    const n = Array.isArray(c) ? c.length : 0;
+    if (n > max) max = n;
+  }
+  return max;
+}
+
+function resetHideDraft() {
+  const initial = Array.isArray(state.hiddenBlocks) ? state.hiddenBlocks : [];
+  hideDraft = {
+    hidden: new Set(normalizeHiddenBlocks(initial)),
+    maxShown: Math.max(10, maxBlocksAcrossCollections(), 5),
+  };
+  updateHideActions();
+}
+
+function clearHideDraft() {
+  hideDraft = null;
+}
+
+function setsEqual(a, b) {
+  if (a.size !== b.size) return false;
+  for (const v of a) if (!b.has(v)) return false;
+  return true;
+}
+
+function updateHideActions() {
+  if (!els.btnHideSave || !hideDraft) return;
+  const current = new Set(normalizeHiddenBlocks(state.hiddenBlocks));
+  const changed = !setsEqual(current, hideDraft.hidden);
+  els.btnHideSave.disabled = !changed;
+}
+
+function sampleTitleForBlockIndex(idx) {
+  const current = state.collections[state.currentIndex];
+  if (Array.isArray(current) && current[idx] && String(current[idx].title || '').trim()) {
+    return String(current[idx].title || '').trim();
+  }
+  for (const c of state.collections) {
+    if (Array.isArray(c) && c[idx] && String(c[idx].title || '').trim()) {
+      return String(c[idx].title || '').trim();
+    }
+  }
+  return '';
+}
+
+function renderHideView() {
+  if (!els.hideBlocksList || !hideDraft) return;
+
+  els.hideBlocksList.innerHTML = '';
+
+  const total = hideDraft.maxShown;
+  for (let i = 0; i < total; i++) {
+    const row = document.createElement('div');
+    row.className = 'hide-block-row';
+
+    const meta = document.createElement('div');
+    meta.className = 'hide-block-meta';
+
+    const t = document.createElement('div');
+    t.className = 'hide-block-title';
+    t.textContent = `Textblock ${i + 1}`;
+    meta.appendChild(t);
+
+    const sample = sampleTitleForBlockIndex(i);
+    const sub = document.createElement('div');
+    sub.className = 'hide-block-sub';
+    sub.textContent = sample ? `Beispiel: ${sample}` : 'Beispiel: –';
+    meta.appendChild(sub);
+
+    const toggle = document.createElement('label');
+    toggle.className = 'hide-block-toggle';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = hideDraft.hidden.has(i);
+    cb.addEventListener('change', () => {
+      if (!hideDraft) return;
+      if (cb.checked) hideDraft.hidden.add(i);
+      else hideDraft.hidden.delete(i);
+      updateHideActions();
+    });
+
+    const span = document.createElement('span');
+    span.textContent = 'Ausblenden';
+
+    toggle.appendChild(cb);
+    toggle.appendChild(span);
+
+    row.appendChild(meta);
+    row.appendChild(toggle);
+
+    els.hideBlocksList.appendChild(row);
+  }
+
+  updateHideActions();
+}
+
+function applyHideDraft() {
+  if (!hideDraft) { setView('reader'); scrollTop(); return; }
+  setHiddenBlocks(Array.from(hideDraft.hidden));
+  saveState();
+  renderBlocks();
+  clearHideDraft();
+  setView('reader');
+  scrollTop();
+  showToast('Ausgeblendete Textblöcke gespeichert.');
+}
+
+function cancelHideDraft() {
+  clearHideDraft();
+  setView('reader');
+  scrollTop();
+}
 
   function cancelDeleteDraft() {
     clearDeleteDraft();
@@ -1164,6 +1351,7 @@ function renderNav() {
     els.menuToImport.addEventListener('click', () => { setView('import'); closeMenu(); });
     els.menuExport.addEventListener('click', () => { closeMenu(); exportAllAsXlsx(); });
     els.menuToDelete.addEventListener('click', () => { setView('delete'); closeMenu(); });
+    els.menuToHide.addEventListener('click', () => { setView('hide'); closeMenu(); });
 
     els.menuLoadSample.addEventListener('click', loadSamples);
     els.menuClearAll.addEventListener('click', clearAll);
@@ -1186,6 +1374,9 @@ function renderNav() {
 
     els.btnDeleteCancel.addEventListener('click', cancelDeleteDraft);
     els.btnDeleteSave.addEventListener('click', applyDeleteDraft);
+
+    els.btnHideCancel.addEventListener('click', cancelHideDraft);
+    els.btnHideSave.addEventListener('click', applyHideDraft);
 
     els.importForm.addEventListener('submit', async (e) => {
       e.preventDefault();

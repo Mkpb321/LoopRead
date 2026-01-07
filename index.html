@@ -135,7 +135,24 @@
           <button id="btnDeleteCancel" class="btn btn-ghost" type="button">Abbrechen</button>
         </div>
       </div>
-    </section>
+    <!-- Hide Blocks View -->
+<section id="view-hide" class="view" aria-label="Textblöcke ausblenden">
+  <div class="add-header">
+    <h1 class="add-title">Textblöcke ausblenden</h1>
+    <p class="add-hint">Wähle Textblöcke, die in der gesamten App nicht angezeigt werden sollen. Inhalte bleiben gespeichert und können jederzeit wieder eingeblendet werden.</p>
+  </div>
+
+  <div id="hideBlocksList" class="hide-blocks-list" aria-live="polite"></div>
+
+  <div class="add-form">
+    <div class="add-actions">
+      <button id="btnHideSave" class="btn" type="button">Speichern</button>
+      <button id="btnHideCancel" class="btn btn-ghost" type="button">Abbrechen</button>
+    </div>
+  </div>
+</section>
+
+</section>
   </main>
 
   <!-- Menu Drawer -->
@@ -149,7 +166,8 @@
       <button id="menuToImport" class="drawer-item" type="button">Import</button>
       <button id="menuExport" class="drawer-item" type="button">Export (Excel)</button>
       <button id="menuToDelete" class="drawer-item" type="button">Sammlungen löschen</button>
-      <div class="drawer-sep" role="separator" aria-hidden="true"></div>
+            <button id="menuToHide" class="drawer-item" type="button">Textblöcke ausblenden</button>
+<div class="drawer-sep" role="separator" aria-hidden="true"></div>
 
       <button id="menuLoadSample" class="drawer-item" type="button">Probedaten laden</button>
       <button id="menuClearAll" class="drawer-item danger" type="button">Alle Daten löschen</button>

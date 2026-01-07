@@ -119,7 +119,15 @@ function isBlockHidden(idx) {
   function hideToast() {
     if (toastTimer) window.clearTimeout(toastTimer);
     toastTimer = null;
-    els.toast.hidden = true;
+
+    if (els.toastMsg) {
+      els.toastMsg.textContent = '';
+    } else if (els.toast) {
+      // Fallback if markup was not upgraded for some reason
+      els.toast.textContent = '';
+    }
+
+    if (els.toast) els.toast.hidden = true;
   }
 
   function showToast(message) {

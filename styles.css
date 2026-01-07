@@ -346,6 +346,10 @@ body.tool-highlight-active select{
   gap: 10px;
 }
 
+.toast[hidden]{
+  display: none !important;
+}
+
 .toast-msg{
   flex: 1;
   min-width: 0;
@@ -357,7 +361,7 @@ body.tool-highlight-active select{
   color: var(--fg);
   width: 26px;
   height: 26px;
-  border-radius: 999px;
+  border-radius: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;

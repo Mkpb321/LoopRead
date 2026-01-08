@@ -7,7 +7,7 @@
   --panel: #f2f2f2; /* hellgrau: Navigation + Drawer */
   --btn: #e0e0e0;   /* etwas dunkler: Buttons */
 
-  --pad: 8px;
+  --pad: 16px;
   --tap: 34px;
 }
 
@@ -399,7 +399,6 @@ body.auth-locked .overlay{
 /* Slightly larger text on wider screens */
 @media (min-width: 700px){
   .nav{ padding-left: 12px; padding-right: 12px; }
-  :root{ --pad: 12px; }
 }
 
 /* In-App Confirm (statt browser confirm/alert) */

@@ -555,3 +555,49 @@ body.auth-locked .overlay{
   height: 18px;
   margin-top: 1px;
 }
+
+
+/* Projects */
+.view-inner{
+  padding: 18px var(--pad) 80px var(--pad);
+}
+.view-title{
+  margin: 0 0 6px 0;
+  font-size: 18px;
+}
+.view-subtitle{
+  margin: 0 0 14px 0;
+  font-size: 12px;
+}
+.projects-grid{
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+.project-card{
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 10px;
+}
+.project-card-top{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.project-card-top .input{
+  flex: 1;
+}
+.project-badge{
+  border: 1px solid var(--line);
+  padding: 2px 6px;
+  font-size: 11px;
+}
+.project-actions{
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.drawer-project-name{
+  font-weight: 400;
+  font-size: 12px;
+}

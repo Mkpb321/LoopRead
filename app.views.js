@@ -23,6 +23,13 @@
     loadState,
     clampIndex,
     scrollTop,
+    loadProjectsMeta,
+    getActiveProject,
+    setActiveProject,
+    createProject,
+    renameProject,
+    updateProjectNameUI,
+    clearAllUserData,
   } = app;
 
   function renderNav() {
@@ -94,6 +101,122 @@
 
     applyAllHighlights();
   }
+
+
+  // --- Projects (top-level grouping) ---
+  function renderProjectsView() {
+    if (!els.projectsList) return;
+
+    loadProjectsMeta();
+    updateProjectNameUI();
+
+    els.projectsList.innerHTML = '';
+
+    if (!Array.isArray(state.projects) || state.projects.length === 0) {
+      const div = document.createElement('div');
+      div.className = 'empty';
+      div.innerHTML = '<strong>Keine Projekte.</strong><br/>Erstelle ein neues Projekt.';
+      els.projectsList.appendChild(div);
+      return;
+    }
+
+    for (const p of state.projects) {
+      const card = document.createElement('div');
+      card.className = 'project-card';
+
+      const top = document.createElement('div');
+      top.className = 'project-card-top';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'input';
+      input.value = p.name || p.id;
+      input.setAttribute('autocomplete', 'off');
+      input.dataset.projectId = p.id;
+
+      top.appendChild(input);
+
+      if (p.id === state.activeProjectId) {
+        const badge = document.createElement('span');
+        badge.className = 'project-badge';
+        badge.textContent = 'Aktiv';
+        top.appendChild(badge);
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'project-actions';
+
+      const btnLoad = document.createElement('button');
+      btnLoad.type = 'button';
+      btnLoad.className = 'btn btn-ghost';
+      btnLoad.textContent = 'Laden';
+      btnLoad.dataset.action = 'load';
+      btnLoad.dataset.projectId = p.id;
+      btnLoad.disabled = (p.id === state.activeProjectId);
+
+      const btnRename = document.createElement('button');
+      btnRename.type = 'button';
+      btnRename.className = 'btn';
+      btnRename.textContent = 'Umbenennen';
+      btnRename.dataset.action = 'rename';
+      btnRename.dataset.projectId = p.id;
+
+      actions.appendChild(btnLoad);
+      actions.appendChild(btnRename);
+
+      card.appendChild(top);
+      card.appendChild(actions);
+
+      els.projectsList.appendChild(card);
+    }
+  }
+
+  function createProjectFromUI() {
+    const name = els.projectNewName ? els.projectNewName.value : '';
+    const id = createProject(name);
+    if (els.projectNewName) els.projectNewName.value = '';
+    loadState();
+    renderNav();
+    renderBlocks();
+    setView('reader');
+    scrollTop();
+    showToast('Projekt erstellt und geladen.');
+    return id;
+  }
+
+  function renameProjectFromUI(projectId) {
+    const input = Array.from(els.projectsList?.querySelectorAll('input[data-project-id]') || []).find(el => el.dataset.projectId === projectId);
+    const name = input ? input.value : '';
+    if (!renameProject(projectId, name)) {
+      showToast('Projektname ungültig.');
+      return false;
+    }
+    renderProjectsView();
+    showToast('Projekt umbenannt.');
+    return true;
+  }
+
+  function loadProjectFromUI(projectId) {
+    setActiveProject(projectId);
+    loadState();
+    renderNav();
+    renderBlocks();
+    setView('reader');
+    scrollTop();
+    showToast('Projekt geladen.');
+  }
+
+  function onProjectsListClick(e) {
+    const btn = e.target.closest('button[data-action][data-project-id]');
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+    const pid = btn.dataset.projectId;
+
+    if (action === 'load') loadProjectFromUI(pid);
+    if (action === 'rename') renameProjectFromUI(pid);
+  }
+
 
   function gotoNext() {
     if (!state.uid) return;
@@ -273,12 +396,10 @@
   }
 
   async function clearAll() {
-    const ok = await showConfirm('Alle Daten wirklich löschen?', 'Löschen', 'Abbrechen');
+    const ok = await showConfirm('Alle Projekte und alle Daten wirklich löschen?', 'Löschen', 'Abbrechen');
     if (!ok) return;
 
-    state.collections = [];
-    state.currentIndex = 0;
-    saveState();
+    clearAllUserData();
     renderNav();
     renderBlocks();
     setView('reader');
@@ -600,6 +721,7 @@
     els.viewImport.classList.toggle('view-active', view === 'import');
     els.viewDelete.classList.toggle('view-active', view === 'delete');
     els.viewHide.classList.toggle('view-active', view === 'hide');
+    els.viewProjects?.classList.toggle('view-active', view === 'projects');
 
     const hasCollections = state.collections.length > 0;
     const inReader = (view === 'reader');
@@ -610,6 +732,10 @@
     // Highlight tooling makes only sense in reader view.
     els.btnHighlightTool.disabled = !inReader;
     els.btnClearHighlights.disabled = !inReader;
+
+    if (view === 'projects') {
+      renderProjectsView();
+    }
 
     if (!inReader) setHighlightToolEnabled(false);
 
@@ -668,6 +794,9 @@
   app.cancelHideDraft = cancelHideDraft;
 
   app.setView = setView;
+  app.renderProjectsView = renderProjectsView;
+  app.onProjectsListClick = onProjectsListClick;
+  app.createProjectFromUI = createProjectFromUI;
 
   // Some helpers used by other files
   app.closeMenu = closeMenu;

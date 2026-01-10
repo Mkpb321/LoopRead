@@ -9,6 +9,8 @@
 
   const STORAGE_KEY = 'loopread_v1_data';
   const STORAGE_INDEX_KEY = 'loopread_v1_index';
+  const STORAGE_PROJECTS_KEY = 'loopread_v1_projects';
+  const STORAGE_ACTIVE_PROJECT_KEY = 'loopread_v1_active_project';
 
   const els = {
     btnPrev: document.getElementById('btnPrev'),
@@ -24,13 +26,18 @@
     viewAdd: document.getElementById('view-add'),
     viewImport: document.getElementById('view-import'),
     viewDelete: document.getElementById('view-delete'),
-
     viewHide: document.getElementById('view-hide'),
+    viewProjects: document.getElementById('view-projects'),
 
     hideBlocksList: document.getElementById('hideBlocksList'),
 
     btnHideSave: document.getElementById('btnHideSave'),
     btnHideCancel: document.getElementById('btnHideCancel'),
+
+    projectsList: document.getElementById('projectsList'),
+    projectNewName: document.getElementById('projectNewName'),
+    btnCreateProject: document.getElementById('btnCreateProject'),
+    btnProjectsBack: document.getElementById('btnProjectsBack'),
 
     blocksContainer: document.getElementById('blocksContainer'),
 
@@ -38,6 +45,8 @@
 
     menuOverlay: document.getElementById('menuOverlay'),
     menuDrawer: document.getElementById('menuDrawer'),
+    drawerProjectName: document.getElementById('drawerProjectName'),
+    menuToProjects: document.getElementById('menuToProjects'),
     menuToReader: document.getElementById('menuToReader'),
     menuToAdd: document.getElementById('menuToAdd'),
     menuToImport: document.getElementById('menuToImport'),
@@ -85,6 +94,8 @@
     menuOpen: false,
     confirmOpen: false,
     uid: null,
+    projects: [],
+    activeProjectId: null,
     activeView: 'reader',
     highlightToolEnabled: false,
   };
@@ -240,15 +251,172 @@
     try { return JSON.parse(jsonStr); } catch { return fallback; }
   }
 
-  function storageKey(baseKey) {
+  function storageKey(baseKey, projectId = null) {
     const uid = state.uid || 'anon';
+    if (projectId) return `${baseKey}_${uid}_${projectId}`;
     return `${baseKey}_${uid}`;
+  }
+
+
+  function defaultProjectMeta() {
+    return { id: 'default', name: 'Standard' };
+  }
+
+  function normalizeProjects(list) {
+    if (!Array.isArray(list)) return [];
+    const out = [];
+    const seen = new Set();
+    for (const p of list) {
+      if (!p || typeof p !== 'object') continue;
+      const id = String(p.id || '').trim();
+      const name = String(p.name || '').trim();
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      out.push({ id, name: name || id });
+    }
+    return out;
+  }
+
+  function getActiveProjectId() {
+    if (state.activeProjectId) return state.activeProjectId;
+    state.activeProjectId = defaultProjectMeta().id;
+    return state.activeProjectId;
+  }
+
+  function getProjectById(projectId) {
+    const pid = String(projectId || '').trim();
+    if (!pid) return null;
+    return (state.projects || []).find(p => p.id === pid) || null;
+  }
+
+  function getActiveProject() {
+    return getProjectById(getActiveProjectId());
+  }
+
+  function updateProjectNameUI() {
+    if (!els.drawerProjectName) return;
+    const p = getActiveProject();
+    const name = p?.name ? `– ${p.name}` : '';
+    els.drawerProjectName.textContent = name;
+  }
+
+  function saveProjectsMeta() {
+    localStorage.setItem(storageKey(STORAGE_PROJECTS_KEY), JSON.stringify({ projects: state.projects, activeProjectId: getActiveProjectId() }));
+    localStorage.setItem(storageKey(STORAGE_ACTIVE_PROJECT_KEY), String(getActiveProjectId()));
+    updateProjectNameUI();
+  }
+
+  function loadProjectsMeta() {
+    const raw = localStorage.getItem(storageKey(STORAGE_PROJECTS_KEY));
+    const activeRaw = localStorage.getItem(storageKey(STORAGE_ACTIVE_PROJECT_KEY));
+
+    if (raw) {
+      const parsed = safeParse(raw, null);
+      if (parsed && Array.isArray(parsed.projects)) state.projects = normalizeProjects(parsed.projects);
+      if (parsed && parsed.activeProjectId) state.activeProjectId = String(parsed.activeProjectId);
+    }
+
+    if (activeRaw) state.activeProjectId = String(activeRaw);
+
+    // If no projects exist, create a default project.
+    if (!Array.isArray(state.projects) || state.projects.length === 0) {
+      state.projects = [defaultProjectMeta()];
+    }
+
+    // Ensure active project exists.
+    if (!getProjectById(state.activeProjectId)) {
+      state.activeProjectId = state.projects[0].id;
+    }
+
+    // One-time migration from legacy (single-project) keys.
+    const legacyRaw = localStorage.getItem(storageKey(STORAGE_KEY));
+    const legacyIdx = localStorage.getItem(storageKey(STORAGE_INDEX_KEY));
+    const pid = getActiveProjectId();
+    const currentRaw = localStorage.getItem(storageKey(STORAGE_KEY, pid));
+    const currentIdx = localStorage.getItem(storageKey(STORAGE_INDEX_KEY, pid));
+
+    if (legacyRaw && !currentRaw) {
+      localStorage.setItem(storageKey(STORAGE_KEY, pid), legacyRaw);
+      localStorage.removeItem(storageKey(STORAGE_KEY));
+    }
+    if (legacyIdx !== null && currentIdx === null) {
+      localStorage.setItem(storageKey(STORAGE_INDEX_KEY, pid), legacyIdx);
+      localStorage.removeItem(storageKey(STORAGE_INDEX_KEY));
+    }
+
+    saveProjectsMeta();
+  }
+
+  function setActiveProject(projectId) {
+    const pid = String(projectId || '').trim();
+    if (!pid) return;
+    if (!getProjectById(pid)) return;
+    state.activeProjectId = pid;
+    saveProjectsMeta();
+  }
+
+  function createProject(name) {
+    const base = String(name || '').trim();
+    const safeName = base || `Projekt ${state.projects.length + 1}`;
+    const id = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    state.projects.push({ id, name: safeName });
+    state.activeProjectId = id;
+    saveProjectsMeta();
+
+    // Initialize empty data for the new project.
+    state.collections = [];
+    setHiddenBlocks([]);
+    state.currentIndex = 0;
+    saveState();
+
+    return id;
+  }
+
+  function renameProject(projectId, newName) {
+    const pid = String(projectId || '').trim();
+    const nn = String(newName || '').trim();
+    const p = getProjectById(pid);
+    if (!p) return false;
+    if (!nn) return false;
+    p.name = nn;
+    saveProjectsMeta();
+    return true;
+  }
+
+  function clearAllUserData() {
+    const raw = localStorage.getItem(storageKey(STORAGE_PROJECTS_KEY));
+    const parsed = safeParse(raw, null);
+    const projects = normalizeProjects(parsed?.projects || state.projects);
+
+    for (const p of projects) {
+      localStorage.removeItem(storageKey(STORAGE_KEY, p.id));
+      localStorage.removeItem(storageKey(STORAGE_INDEX_KEY, p.id));
+    }
+
+    // Remove meta and any legacy keys.
+    localStorage.removeItem(storageKey(STORAGE_PROJECTS_KEY));
+    localStorage.removeItem(storageKey(STORAGE_ACTIVE_PROJECT_KEY));
+    localStorage.removeItem(storageKey(STORAGE_KEY));
+    localStorage.removeItem(storageKey(STORAGE_INDEX_KEY));
+
+    // Reset to a fresh default project.
+    state.projects = [defaultProjectMeta()];
+    state.activeProjectId = state.projects[0].id;
+    state.collections = [];
+    setHiddenBlocks([]);
+    state.currentIndex = 0;
+
+    saveProjectsMeta();
+    saveState();
   }
 
   function loadState() {
     setHiddenBlocks([]);
-    const raw = localStorage.getItem(storageKey(STORAGE_KEY));
-    const idxRaw = localStorage.getItem(storageKey(STORAGE_INDEX_KEY));
+    state.collections = [];
+    state.currentIndex = 0;
+    const pid = getActiveProjectId();
+    const raw = localStorage.getItem(storageKey(STORAGE_KEY, pid));
+    const idxRaw = localStorage.getItem(storageKey(STORAGE_INDEX_KEY, pid));
 
     if (raw) {
       const parsed = safeParse(raw, null);
@@ -269,8 +437,9 @@
   }
 
   function saveState() {
-    localStorage.setItem(storageKey(STORAGE_KEY), JSON.stringify({ collections: state.collections, hiddenBlocks: state.hiddenBlocks }));
-    localStorage.setItem(storageKey(STORAGE_INDEX_KEY), String(state.currentIndex));
+    const pid = getActiveProjectId();
+    localStorage.setItem(storageKey(STORAGE_KEY, pid), JSON.stringify({ collections: state.collections, hiddenBlocks: state.hiddenBlocks }));
+    localStorage.setItem(storageKey(STORAGE_INDEX_KEY, pid), String(state.currentIndex));
   }
 
   function clampIndex() {
@@ -290,6 +459,7 @@
       els.viewImport.classList.remove('view-active');
       els.viewDelete.classList.remove('view-active');
       els.viewHide.classList.remove('view-active');
+      els.viewProjects?.classList.remove('view-active');
     }
   }
 
@@ -309,6 +479,8 @@
   // Expose core to app namespace
   app.STORAGE_KEY = STORAGE_KEY;
   app.STORAGE_INDEX_KEY = STORAGE_INDEX_KEY;
+  app.STORAGE_PROJECTS_KEY = STORAGE_PROJECTS_KEY;
+  app.STORAGE_ACTIVE_PROJECT_KEY = STORAGE_ACTIVE_PROJECT_KEY;
 
   app.els = els;
   app.state = state;
@@ -328,6 +500,16 @@
 
   app.safeParse = safeParse;
   app.storageKey = storageKey;
+  app.loadProjectsMeta = loadProjectsMeta;
+  app.saveProjectsMeta = saveProjectsMeta;
+  app.getActiveProjectId = getActiveProjectId;
+  app.getActiveProject = getActiveProject;
+  app.setActiveProject = setActiveProject;
+  app.createProject = createProject;
+  app.renameProject = renameProject;
+  app.updateProjectNameUI = updateProjectNameUI;
+  app.clearAllUserData = clearAllUserData;
+
   app.loadState = loadState;
   app.saveState = saveState;
   app.clampIndex = clampIndex;

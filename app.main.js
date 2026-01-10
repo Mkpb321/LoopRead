@@ -30,6 +30,10 @@
     applyHideDraft,
     cancelHideDraft,
     setHighlightToolEnabled,
+    loadProjectsMeta,
+    renderProjectsView,
+    onProjectsListClick,
+    createProjectFromUI,
   } = app;
 
   // Swipe navigation (disabled when menu open)
@@ -428,6 +432,7 @@
       });
     }
 
+    els.menuToProjects?.addEventListener('click', () => { setView('projects'); closeMenu(); });
     els.menuToReader.addEventListener('click', () => { setView('reader'); closeMenu(); });
     els.menuToAdd.addEventListener('click', () => { setView('add'); closeMenu(); });
     els.menuToImport.addEventListener('click', () => { setView('import'); closeMenu(); });
@@ -442,6 +447,18 @@
       if (!firebaseReady) { showToast('Logout derzeit nicht verfügbar.'); return; }
       firebase.auth().signOut();
     });
+
+
+    // Projects view
+    if (els.btnCreateProject) {
+      els.btnCreateProject.addEventListener('click', () => { createProjectFromUI(); });
+    }
+    if (els.projectsList) {
+      els.projectsList.addEventListener('click', onProjectsListClick);
+    }
+    if (els.btnProjectsBack) {
+      els.btnProjectsBack.addEventListener('click', () => { setView('reader'); scrollTop(); });
+    }
 
     els.btnCancel.addEventListener('click', () => { setView('reader'); app.scrollTop(); });
     els.addForm.addEventListener('submit', (e) => { e.preventDefault(); app.saveNewCollection(); });
@@ -515,6 +532,7 @@
         if (user && user.uid) {
           state.uid = user.uid;
           app.setAuthLocked(false);
+          loadProjectsMeta();
           loadState();
           renderNav();
           renderBlocks();

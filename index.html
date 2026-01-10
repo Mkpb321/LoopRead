@@ -62,7 +62,28 @@
     </section>
 
     <!-- Reader View -->
-    <section id="view-reader" class="view" aria-label="Lesen">
+    
+    <!-- Projects View -->
+    <section id="view-projects" class="view" aria-label="Projekte">
+      <div class="view-inner">
+        <h2 class="view-title">Projekte</h2>
+        <p class="view-subtitle">Projekte trennen deine Sammlungen und Textblöcke vollständig voneinander.</p>
+
+        <div class="form">
+          <label class="label" for="projectNewName">Neues Projekt</label>
+          <input id="projectNewName" class="input" type="text" placeholder="Projektname" autocomplete="off" />
+          <button id="btnCreateProject" class="btn" type="button">Projekt erstellen</button>
+        </div>
+
+        <div id="projectsList" class="projects-grid" aria-live="polite"></div>
+
+        <div class="actions">
+          <button id="btnProjectsBack" class="btn btn-ghost" type="button">Zurück</button>
+        </div>
+      </div>
+    </section>
+
+<section id="view-reader" class="view" aria-label="Lesen">
       <div id="blocksContainer" class="blocks" aria-live="polite"></div>
     </section>
 
@@ -163,8 +184,9 @@
   <div id="menuOverlay" class="overlay" hidden></div>
   <aside id="menuDrawer" class="drawer" role="dialog" aria-label="Menü" aria-modal="true" aria-hidden="true">
     <div class="drawer-inner">
-      <div class="drawer-title">LoopRead</div>
+      <div class="drawer-title">LoopRead <span id="drawerProjectName" class="drawer-project-name"></span></div>
 
+      <button id="menuToProjects" class="drawer-item" type="button">Projekte</button>
       <button id="menuToReader" class="drawer-item" type="button">Lesen</button>
       <button id="menuToAdd" class="drawer-item" type="button">Neue Blocksammlung</button>
       <button id="menuToImport" class="drawer-item" type="button">Import</button>

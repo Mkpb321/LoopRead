@@ -410,6 +410,7 @@
     els.btnNext.addEventListener('click', gotoNext);
 
     if (els.btnHighlightTool) els.btnHighlightTool.addEventListener('click', toggleHighlightTool);
+    if (els.btnMarkerTool) els.btnMarkerTool.addEventListener('click', toggleMarkerTool);
     if (els.btnClearHighlights) els.btnClearHighlights.addEventListener('click', clearHighlights);
 
     document.addEventListener('selectstart', onGlobalSelectStart, true);

@@ -220,13 +220,17 @@
     state.markerToolEnabled = !!enabled;
 
     document.body.classList.toggle('tool-marker-active', state.markerToolEnabled);
-    if (els.btnMarkerTool) els.btnMarkerTool.setAttribute('aria-pressed', state.markerToolEnabled ? 'true' : 'false');
+    if (els.btnMarkerTool) {
+      els.btnMarkerTool.classList.toggle('is-active', state.markerToolEnabled);
+      els.btnMarkerTool.setAttribute('aria-pressed', state.markerToolEnabled ? 'true' : 'false');
+    }
 
     if (!state.markerToolEnabled) {
       clearPendingMarkerStart();
       removeMarkerDecorations();
     } else {
       applyAllMarkers();
+      app.showToast?.('Marker aktiv: Start- und Endwort tippen.');
     }
   }
 

@@ -21,9 +21,11 @@
     gotoNext,
     gotoPrev,
     toggleHighlightTool,
+    toggleMarkerTool,
     clearHighlights,
     onGlobalSelectStart,
     onWordTokenClick,
+    onNotesListClick,
     closeConfirm,
     applyDeleteDraft,
     cancelDeleteDraft,
@@ -439,6 +441,7 @@
     els.menuExport.addEventListener('click', () => { closeMenu(); exportAllAsXlsx(); });
     els.menuToDelete.addEventListener('click', () => { setView('delete'); closeMenu(); });
     els.menuToHide.addEventListener('click', () => { setView('hide'); closeMenu(); });
+    els.menuToNotes?.addEventListener('click', () => { setView('notes'); closeMenu(); });
 
     els.menuLoadSample.addEventListener('click', app.loadSamples);
     els.menuClearAll.addEventListener('click', app.clearAll);
@@ -475,6 +478,8 @@
     els.btnDeleteSave.addEventListener('click', applyDeleteDraft);
 
     els.btnHideCancel.addEventListener('click', cancelHideDraft);
+    els.btnNotesBack?.addEventListener('click', () => { setView('reader'); app.scrollTop(); });
+    els.notesList?.addEventListener('click', onNotesListClick);
     els.btnHideSave.addEventListener('click', applyHideDraft);
 
     els.importForm.addEventListener('submit', async (e) => {

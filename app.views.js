@@ -17,6 +17,9 @@
     applyAllHighlights,
     clearHighlights,
     setHighlightToolEnabled,
+    applyAllMarkers,
+    setMarkerToolEnabled,
+    focusMarkerInView,
     showConfirm,
     showToast,
     saveState,
@@ -72,6 +75,12 @@
       content.className = 'block-content';
       content.innerHTML = formatContent((b.content || '').trim());
       wrapWordsInElement(content);
+      // assign stable token indices for marker spans (per block)
+      const tokens = content.querySelectorAll('.word-token');
+      tokens.forEach((t, ti) => {
+        t.dataset.blockIndex = String(i);
+        t.dataset.tokenIndex = String(ti);
+      });
 
       const footer = document.createElement('div');
       footer.className = 'block-footer';
@@ -100,6 +109,134 @@
     }
 
     applyAllHighlights();
+    applyAllMarkers?.();
+
+    if (state.pendingMarkerFocusId) {
+      const id = state.pendingMarkerFocusId;
+      state.pendingMarkerFocusId = null;
+      setTimeout(() => focusMarkerInView?.(id), 0);
+    }
+  }
+
+
+  // --- Markers / Notes (project-scoped) ---
+  function renderNotesView() {
+    if (!els.notesList) return;
+    els.notesList.innerHTML = '';
+
+    const marks = Array.isArray(state.markers) ? state.markers.slice() : [];
+    if (marks.length === 0) {
+      const div = document.createElement('div');
+      div.className = 'empty';
+      div.innerHTML = '<strong>Keine Markierungen vorhanden.</strong>';
+      els.notesList.appendChild(div);
+      return;
+    }
+
+    for (const mk of marks) {
+      // skip malformed markers
+      if (mk.collectionIndex == null || mk.blockIndex == null) continue;
+
+      const card = document.createElement('div');
+      card.className = 'note-card';
+      card.dataset.markerId = mk.id;
+
+      const head = document.createElement('div');
+      head.className = 'note-card-head';
+
+      const title = document.createElement('div');
+      title.className = 'note-card-title';
+      title.textContent = `Sammlung ${mk.collectionIndex + 1} · Block ${mk.blockIndex + 1}`;
+
+      const actions = document.createElement('div');
+      actions.className = 'note-card-actions';
+
+      const btnOpen = document.createElement('button');
+      btnOpen.className = 'btn btn-ghost';
+      btnOpen.type = 'button';
+      btnOpen.dataset.action = 'open';
+      btnOpen.textContent = 'Öffnen';
+
+      const btnDel = document.createElement('button');
+      btnDel.className = 'btn btn-danger';
+      btnDel.type = 'button';
+      btnDel.dataset.action = 'delete';
+      btnDel.textContent = 'Löschen';
+
+      actions.appendChild(btnOpen);
+      actions.appendChild(btnDel);
+
+      head.appendChild(title);
+      head.appendChild(actions);
+
+      const body = document.createElement('div');
+      body.className = 'note-card-body';
+
+      const ex = document.createElement('div');
+      ex.className = 'note-card-excerpt';
+      ex.textContent = mk.text ? `„${mk.text}“` : '(ohne Textauszug)';
+
+      const note = document.createElement('div');
+      note.className = 'note-card-note';
+      note.textContent = mk.note && String(mk.note).trim().length > 0 ? mk.note : 'Keine Notiz';
+
+      body.appendChild(ex);
+      body.appendChild(note);
+
+      card.appendChild(head);
+      card.appendChild(body);
+
+      els.notesList.appendChild(card);
+    }
+  }
+
+  function navigateToMarker(markerId) {
+    const id = String(markerId || '').trim();
+    if (!id) return;
+    const mk = (state.markers || []).find(m => m.id === id);
+    if (!mk) {
+      showToast('Markierung nicht gefunden.');
+      return;
+    }
+
+    // Switch to collection
+    state.currentIndex = mk.collectionIndex;
+    app.clampIndex();
+
+    // Ensure marker tool is enabled so the mark is visible
+    setMarkerToolEnabled?.(true);
+
+    // Focus after render
+    state.pendingMarkerFocusId = id;
+
+    // Render reader content
+    setView('reader');
+    renderNav();
+    renderBlocks();
+
+    // Persist navigation index
+    app.saveState?.();
+  }
+  async function onNotesListClick(e) {
+    const btn = e.target?.closest?.('button');
+    const card = e.target?.closest?.('.note-card');
+    const id = (btn?.closest?.('.note-card') || card)?.dataset?.markerId;
+
+    if (!id) return;
+
+    const action = btn?.dataset?.action;
+
+    if (action === 'delete') {
+      const ok = await showConfirm('Markierung wirklich löschen? (Notiz wird ebenfalls entfernt)');
+      if (!ok) return;
+      app.deleteMarker?.(id);
+      renderNotesView();
+      showToast('Markierung gelöscht.');
+      return;
+    }
+
+    // default: open
+    navigateToMarker(id);
   }
 
 
@@ -722,6 +859,7 @@
     els.viewDelete.classList.toggle('view-active', view === 'delete');
     els.viewHide.classList.toggle('view-active', view === 'hide');
     els.viewProjects?.classList.toggle('view-active', view === 'projects');
+    els.viewNotes?.classList.toggle('view-active', view === 'notes');
 
     const hasCollections = state.collections.length > 0;
     const inReader = (view === 'reader');
@@ -731,13 +869,21 @@
 
     // Highlight tooling makes only sense in reader view.
     els.btnHighlightTool.disabled = !inReader;
+    els.btnMarkerTool && (els.btnMarkerTool.disabled = !inReader);
     els.btnClearHighlights.disabled = !inReader;
 
     if (view === 'projects') {
       renderProjectsView();
     }
 
-    if (!inReader) setHighlightToolEnabled(false);
+    if (view === 'notes') {
+      renderNotesView();
+    }
+
+    if (!inReader) {
+      setHighlightToolEnabled(false);
+      setMarkerToolEnabled?.(false);
+    }
 
     if (view === 'add') {
       buildEditors(3);

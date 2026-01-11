@@ -100,7 +100,10 @@
   function replaceTokenElement(oldEl, tagName) {
     const el = document.createElement(tagName);
     el.className = oldEl.className;
-    el.dataset.word = oldEl.dataset.word;
+    // preserve all dataset attributes (e.g., token indices / marker ids)
+    for (const [k, v] of Object.entries(oldEl.dataset || {})) {
+      el.dataset[k] = v;
+    }
     el.textContent = oldEl.textContent;
     return el;
   }
@@ -149,7 +152,6 @@
   }
 
   function onWordTokenClick(e) {
-    if (!state.highlightToolEnabled) return;
     if (!els.viewReader.classList.contains('view-active')) return;
 
     const targetEl = (e.target && e.target.nodeType === Node.ELEMENT_NODE)
@@ -158,6 +160,14 @@
 
     const token = targetEl?.closest?.('.word-token');
     if (!token || !els.blocksContainer.contains(token)) return;
+
+    // Marker tool has precedence when active
+    if (state.markerToolEnabled) {
+      const handled = onMarkerTokenClick(token);
+      if (handled) return;
+    }
+
+    if (!state.highlightToolEnabled) return;
 
     const wordKey = token.dataset.word;
     if (!wordKey) return;
@@ -199,7 +209,265 @@
     e.preventDefault();
   }
 
-  // Expose
+  
+
+  // --- Marker tool (continuous word-span marks with optional notes; project-scoped persistence via state.markers) ---
+  const marker = {
+    pendingStart: null, // { blockIndex:number, tokenIndex:number }
+  };
+
+  function setMarkerToolEnabled(enabled) {
+    state.markerToolEnabled = !!enabled;
+
+    document.body.classList.toggle('tool-marker-active', state.markerToolEnabled);
+    if (els.btnMarkerTool) els.btnMarkerTool.setAttribute('aria-pressed', state.markerToolEnabled ? 'true' : 'false');
+
+    if (!state.markerToolEnabled) {
+      clearPendingMarkerStart();
+      removeMarkerDecorations();
+    } else {
+      applyAllMarkers();
+    }
+  }
+
+  function toggleMarkerTool() {
+    setMarkerToolEnabled(!state.markerToolEnabled);
+  }
+
+  function clearPendingMarkerStart() {
+    marker.pendingStart = null;
+    if (!els.blocksContainer) return;
+    els.blocksContainer.querySelectorAll('.marker-pending-start').forEach(el => el.classList.remove('marker-pending-start'));
+  }
+
+  function getMarkersForCurrentCollection() {
+    const ci = state.currentIndex;
+    return (state.markers || []).filter(m => m.collectionIndex === ci);
+  }
+
+  function getMarkerById(markerId) {
+    const id = String(markerId || '').trim();
+    if (!id) return null;
+    return (state.markers || []).find(m => m.id === id) || null;
+  }
+
+  function removeMarkerDecorations() {
+    if (!els.blocksContainer) return;
+    els.blocksContainer.querySelectorAll('.word-token.marker-token').forEach(el => el.classList.remove('marker-token'));
+    els.blocksContainer.querySelectorAll('.word-token[data-marker-id]').forEach(el => delete el.dataset.markerId);
+    els.blocksContainer.querySelectorAll('.marker-jump').forEach(el => el.classList.remove('marker-jump'));
+  }
+
+  function applyMarkerToRange(mk) {
+    const b = mk.blockIndex;
+    for (let ti = mk.start; ti <= mk.end; ti++) {
+      const el = els.blocksContainer.querySelector(`.word-token[data-block-index="${b}"][data-token-index="${ti}"]`);
+      if (!el) continue;
+      el.classList.add('marker-token');
+      el.dataset.markerId = mk.id;
+    }
+  }
+
+  function applyAllMarkers() {
+    if (!els.blocksContainer) return;
+    if (!state.markerToolEnabled) {
+      removeMarkerDecorations();
+      return;
+    }
+    removeMarkerDecorations();
+
+    const marks = getMarkersForCurrentCollection();
+    for (const mk of marks) applyMarkerToRange(mk);
+  }
+
+  function rangesOverlap(aStart, aEnd, bStart, bEnd) {
+    return !(aEnd < bStart || aStart > bEnd);
+  }
+
+  function hasOverlapInBlock(blockIndex, start, end) {
+    const marks = getMarkersForCurrentCollection().filter(m => m.blockIndex === blockIndex);
+    for (const mk of marks) {
+      if (rangesOverlap(start, end, mk.start, mk.end)) return true;
+    }
+    return false;
+  }
+
+  function extractTextForRange(blockIndex, start, end) {
+    const words = [];
+    for (let ti = start; ti <= end; ti++) {
+      const el = els.blocksContainer.querySelector(`.word-token[data-block-index="${blockIndex}"][data-token-index="${ti}"]`);
+      if (!el) continue;
+      words.push(el.textContent || '');
+    }
+    return words.join(' ').trim();
+  }
+
+  function createMarker(blockIndex, start, end) {
+    const s = Math.min(start, end);
+    const e = Math.max(start, end);
+
+    if (hasOverlapInBlock(blockIndex, s, e)) {
+      app.showToast('Markierung überschneidet sich mit einer bestehenden Markierung.');
+      return null;
+    }
+
+    const id = `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    const text = extractTextForRange(blockIndex, s, e);
+    const now = Date.now();
+    const mk = { id, collectionIndex: state.currentIndex, blockIndex, start: s, end: e, note: '', text, createdAt: now, updatedAt: now };
+
+    state.markers = [mk, ...(state.markers || [])];
+    app.saveState?.();
+    applyAllMarkers();
+    app.showToast('Markierung erstellt.');
+    return mk;
+  }
+
+  function deleteMarker(markerId) {
+    const id = String(markerId || '').trim();
+    if (!id) return;
+    const before = (state.markers || []).length;
+    state.markers = (state.markers || []).filter(m => m.id !== id);
+    if (state.markers.length !== before) {
+      app.saveState?.();
+      applyAllMarkers();
+    }
+  }
+
+  function openMarkerNoteEditor(markerId) {
+    const mk = getMarkerById(markerId);
+    if (!mk) return;
+
+    if (!els.markerNoteBox || !els.markerNoteOverlay || !els.markerNoteText) return;
+
+    els.markerNoteTitle.textContent = 'Notiz';
+    els.markerNoteSub.textContent = `Sammlung ${mk.collectionIndex + 1} · Block ${mk.blockIndex + 1} · „${(mk.text || '').slice(0, 120)}${(mk.text || '').length > 120 ? '…' : ''}“`;
+
+    els.markerNoteText.value = mk.note || '';
+    els.markerNoteBox.dataset.markerId = mk.id;
+
+    els.markerNoteOverlay.hidden = false;
+    els.markerNoteBox.classList.add('open');
+    els.markerNoteBox.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    setTimeout(() => els.markerNoteText?.focus?.(), 0);
+  }
+
+  function closeMarkerNoteEditor() {
+    if (!els.markerNoteBox || !els.markerNoteOverlay) return;
+    els.markerNoteOverlay.hidden = true;
+    els.markerNoteBox.classList.remove('open');
+    els.markerNoteBox.setAttribute('aria-hidden', 'true');
+    delete els.markerNoteBox.dataset.markerId;
+    if (!state.menuOpen && !state.confirmOpen) document.body.style.overflow = '';
+  }
+
+  function saveMarkerNoteFromEditor() {
+    const box = els.markerNoteBox;
+    if (!box) return;
+    const id = String(box.dataset.markerId || '').trim();
+    const mk = getMarkerById(id);
+    if (!mk) { closeMarkerNoteEditor(); return; }
+    mk.note = String(els.markerNoteText.value || '');
+    mk.updatedAt = Date.now();
+
+    // keep stable ordering (newest updated first)
+    state.markers = (state.markers || []).filter(m => m.id !== mk.id);
+    state.markers = [mk, ...state.markers];
+
+    app.saveState?.();
+    closeMarkerNoteEditor();
+    app.showToast('Notiz gespeichert.');
+  }
+
+  async function deleteMarkerFromEditor() {
+    const box = els.markerNoteBox;
+    if (!box) return;
+    const id = String(box.dataset.markerId || '').trim();
+    if (!id) { closeMarkerNoteEditor(); return; }
+    const ok = await app.showConfirm?.('Markierung wirklich löschen? (Notiz wird ebenfalls entfernt)');
+    if (!ok) return;
+    deleteMarker(id);
+    closeMarkerNoteEditor();
+    app.showToast('Markierung gelöscht.');
+  }
+
+  function initMarkerNoteEditorEvents() {
+    if (!els.markerNoteOverlay || !els.markerNoteCancel || !els.markerNoteSave || !els.markerNoteDelete) return;
+
+    els.markerNoteOverlay.addEventListener('click', closeMarkerNoteEditor);
+    els.markerNoteCancel.addEventListener('click', closeMarkerNoteEditor);
+    els.markerNoteSave.addEventListener('click', saveMarkerNoteFromEditor);
+    els.markerNoteDelete.addEventListener('click', deleteMarkerFromEditor);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (els.markerNoteBox?.classList?.contains('open')) closeMarkerNoteEditor();
+    });
+  }
+
+  function onMarkerTokenClick(token) {
+    if (!state.markerToolEnabled) return false;
+
+    // If clicking an existing marker, open note editor.
+    const existingId = token.dataset.markerId;
+    if (existingId) {
+      openMarkerNoteEditor(existingId);
+      return true;
+    }
+
+    const blockIndex = Number(token.dataset.blockIndex);
+    const tokenIndex = Number(token.dataset.tokenIndex);
+    if (!Number.isFinite(blockIndex) || !Number.isFinite(tokenIndex)) return false;
+
+    // first tap: set start
+    if (!marker.pendingStart) {
+      clearPendingMarkerStart();
+      marker.pendingStart = { blockIndex, tokenIndex };
+      token.classList.add('marker-pending-start');
+      return true;
+    }
+
+    // second tap: must be within same block; otherwise restart at new position
+    if (marker.pendingStart.blockIndex !== blockIndex) {
+      clearPendingMarkerStart();
+      marker.pendingStart = { blockIndex, tokenIndex };
+      token.classList.add('marker-pending-start');
+      return true;
+    }
+
+    const start = marker.pendingStart.tokenIndex;
+    const end = tokenIndex;
+
+    clearPendingMarkerStart();
+    createMarker(blockIndex, start, end);
+    return true;
+  }
+
+  function focusMarkerInView(markerId) {
+    const mk = getMarkerById(markerId);
+    if (!mk) return;
+
+    // ensure marker decoration exists (needed for query by marker-id)
+    if (!state.markerToolEnabled) setMarkerToolEnabled(true);
+    applyAllMarkers();
+
+    const el = els.blocksContainer?.querySelector(`.word-token[data-marker-id="${mk.id}"]`);
+    if (!el) {
+      app.showToast('Markierung ist aktuell nicht sichtbar (evtl. ausgeblendeter Textblock).');
+      return;
+    }
+
+    el.classList.add('marker-jump');
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => el.classList.remove('marker-jump'), 1200);
+  }
+
+  // Initialize editor events once
+  initMarkerNoteEditorEvents();
+
+// Expose
   app.highlight = highlight;
 
   app.wrapWordsInElement = wrapWordsInElement;
@@ -210,6 +478,13 @@
 
   app.setHighlightToolEnabled = setHighlightToolEnabled;
   app.toggleHighlightTool = toggleHighlightTool;
+
+  app.setMarkerToolEnabled = setMarkerToolEnabled;
+  app.toggleMarkerTool = toggleMarkerTool;
+  app.applyAllMarkers = applyAllMarkers;
+  app.deleteMarker = deleteMarker;
+  app.openMarkerNoteEditor = openMarkerNoteEditor;
+  app.focusMarkerInView = focusMarkerInView;
 
   app.onGlobalSelectStart = onGlobalSelectStart;
 })();

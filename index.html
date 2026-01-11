@@ -22,7 +22,8 @@
       </div>
 
       <button id="btnNext" class="icon-btn" type="button" aria-label="Weiter">›</button>
-      <button id="btnHighlightTool" class="icon-btn" type="button" aria-label="Wort-Markieren" aria-pressed="false">HL</button>
+      <button id="btnHighlightTool" class="icon-btn" type="button" aria-label="Wort-Markieren" aria-pressed="false">✦</button>
+      <button id="btnMarkerTool" class="icon-btn" type="button" aria-label="Einmal markieren" aria-pressed="false">✎</button>
       <button id="btnClearHighlights" class="icon-btn" type="button" aria-label="Alle Markierungen löschen">✕</button>
       <button id="btnMenu" class="icon-btn" type="button" aria-label="Menü öffnen" aria-haspopup="true" aria-controls="menuDrawer">☰</button>
     </nav>
@@ -39,6 +40,19 @@
     <div class="confirm-actions">
       <button id="confirmCancel" class="btn btn-ghost" type="button">Abbrechen</button>
       <button id="confirmOk" class="btn" type="button">OK</button>
+    </div>
+  </div>
+
+  <div id="markerNoteOverlay" class="confirm-overlay" hidden></div>
+  <div id="markerNoteBox" class="note-box" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="note-title" id="markerNoteTitle">Notiz</div>
+    <div class="note-sub" id="markerNoteSub"></div>
+    <label class="label" for="markerNoteText">Notiz</label>
+    <textarea id="markerNoteText" class="textarea" rows="5" placeholder="Notiz eingeben (optional)"></textarea>
+    <div class="note-actions">
+      <button id="markerNoteCancel" class="btn btn-ghost" type="button">Abbrechen</button>
+      <button id="markerNoteDelete" class="btn btn-danger" type="button">Markierung löschen</button>
+      <button id="markerNoteSave" class="btn" type="button">Speichern</button>
     </div>
   </div>
 
@@ -178,6 +192,21 @@
   </div>
 </section>
 
+  
+    <!-- Notes View -->
+    <section id="view-notes" class="view" aria-label="Markierungen &amp; Notizen">
+      <div class="add-header">
+        <h1 class="add-title">Markierungen &amp; Notizen</h1>
+        <p class="add-hint">Hier siehst du alle Markierungen im aktuellen Projekt. Tippe auf eine Markierung, um direkt zur Stelle zu springen.</p>
+      </div>
+
+      <div id="notesList" class="notes-list" aria-live="polite"></div>
+
+      <div class="actions">
+        <button id="btnNotesBack" class="btn btn-ghost" type="button">Zurück</button>
+      </div>
+    </section>
+
   </main>
 
   <!-- Menu Drawer -->
@@ -193,6 +222,7 @@
       <button id="menuExport" class="drawer-item" type="button">Export (Excel)</button>
       <button id="menuToDelete" class="drawer-item" type="button">Sammlungen löschen</button>
             <button id="menuToHide" class="drawer-item" type="button">Textblöcke ausblenden</button>
+      <button id="menuToNotes" class="drawer-item" type="button">Markierungen &amp; Notizen</button>
 <div class="drawer-sep" role="separator" aria-hidden="true"></div>
 
       <button id="menuLoadSample" class="drawer-item" type="button">Probedaten laden</button>

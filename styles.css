@@ -138,6 +138,30 @@ mark.word-token{
 }
 
 
+
+
+/* Marker tool (single-range marks with optional notes) */
+body.tool-marker-active .word-token{
+  cursor: pointer;
+}
+
+.marker-token{
+  color: #c00;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.marker-pending-start{
+  outline: 2px dashed var(--line);
+  outline-offset: 2px;
+}
+
+.marker-jump{
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
 /* Highlight tool active: prevent native text selection (except inputs/editables) */
 body.tool-highlight-active{
   -webkit-user-select: none;
@@ -600,4 +624,93 @@ body.auth-locked .overlay{
 .drawer-project-name{
   font-weight: 400;
   font-size: 12px;
+}
+
+
+
+/* Notes list */
+.notes-list{
+  padding: 6px var(--pad) 18px var(--pad);
+  display: grid;
+  gap: 10px;
+}
+
+.note-card{
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 10px;
+}
+
+.note-card-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.note-card-title{
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.note-card-actions{
+  display: flex;
+  gap: 8px;
+}
+
+.note-card-body{
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.note-card-excerpt{
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+.note-card-note{
+  opacity: 0.85;
+  border-top: 1px dashed var(--line);
+  padding-top: 6px;
+  white-space: pre-wrap;
+}
+
+.note-box{
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 16px));
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 12px;
+  z-index: 150;
+  display: none;
+}
+
+.note-box.open{ display: block; }
+
+.note-title{
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.note-sub{
+  font-size: 13px;
+  opacity: 0.8;
+  margin-bottom: 10px;
+}
+
+.note-actions{
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.btn-danger{
+  border-color: #c00;
+  color: #c00;
+  background: transparent;
 }

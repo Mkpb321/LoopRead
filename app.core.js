@@ -19,6 +19,7 @@
     btnMenu: document.getElementById('btnMenu'),
 
     btnHighlightTool: document.getElementById('btnHighlightTool'),
+    btnMarkerTool: document.getElementById('btnMarkerTool'),
     btnClearHighlights: document.getElementById('btnClearHighlights'),
 
     viewLogin: document.getElementById('view-login'),
@@ -28,6 +29,10 @@
     viewDelete: document.getElementById('view-delete'),
     viewHide: document.getElementById('view-hide'),
     viewProjects: document.getElementById('view-projects'),
+    viewNotes: document.getElementById('view-notes'),
+
+    notesList: document.getElementById('notesList'),
+    btnNotesBack: document.getElementById('btnNotesBack'),
 
     hideBlocksList: document.getElementById('hideBlocksList'),
 
@@ -53,6 +58,7 @@
     menuExport: document.getElementById('menuExport'),
     menuToDelete: document.getElementById('menuToDelete'),
     menuToHide: document.getElementById('menuToHide'),
+    menuToNotes: document.getElementById('menuToNotes'),
     menuLoadSample: document.getElementById('menuLoadSample'),
     menuClearAll: document.getElementById('menuClearAll'),
     menuLogout: document.getElementById('menuLogout'),
@@ -80,6 +86,15 @@
     confirmCancel: document.getElementById('confirmCancel'),
     confirmOk: document.getElementById('confirmOk'),
 
+    markerNoteOverlay: document.getElementById('markerNoteOverlay'),
+    markerNoteBox: document.getElementById('markerNoteBox'),
+    markerNoteTitle: document.getElementById('markerNoteTitle'),
+    markerNoteSub: document.getElementById('markerNoteSub'),
+    markerNoteText: document.getElementById('markerNoteText'),
+    markerNoteSave: document.getElementById('markerNoteSave'),
+    markerNoteDelete: document.getElementById('markerNoteDelete'),
+    markerNoteCancel: document.getElementById('markerNoteCancel'),
+
     loginForm: document.getElementById('loginForm'),
     loginEmail: document.getElementById('loginEmail'),
     loginPassword: document.getElementById('loginPassword'),
@@ -98,6 +113,9 @@
     activeProjectId: null,
     activeView: 'reader',
     highlightToolEnabled: false,
+    markerToolEnabled: false,
+    markers: [],
+    pendingMarkerFocusId: null,
   };
 
   // --- Global hidden text blocks (by index; 0-based) ---
@@ -119,6 +137,35 @@
     out.sort((a, b) => a - b);
     return out;
   }
+
+  function normalizeMarkers(list) {
+    if (!Array.isArray(list)) return [];
+    const out = [];
+    const seen = new Set();
+    for (const mk of list) {
+      if (!mk || typeof mk !== 'object') continue;
+      const id = String(mk.id || '').trim();
+      if (!id || seen.has(id)) continue;
+      const collectionIndex = Math.trunc(Number(mk.collectionIndex));
+      const blockIndex = Math.trunc(Number(mk.blockIndex));
+      const start = Math.trunc(Number(mk.start));
+      const end = Math.trunc(Number(mk.end));
+      if (!Number.isFinite(collectionIndex) || !Number.isFinite(blockIndex) || !Number.isFinite(start) || !Number.isFinite(end)) continue;
+      if (collectionIndex < 0 || blockIndex < 0 || start < 0 || end < 0) continue;
+      const s = Math.min(start, end);
+      const e = Math.max(start, end);
+      const note = String(mk.note || '');
+      const text = String(mk.text || '');
+      const createdAt = Number(mk.createdAt) || Date.now();
+      const updatedAt = Number(mk.updatedAt) || createdAt;
+      seen.add(id);
+      out.push({ id, collectionIndex, blockIndex, start: s, end: e, note, text, createdAt, updatedAt });
+    }
+    // stable ordering: newest first
+    out.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    return out;
+  }
+
 
   function setHiddenBlocks(list) {
     state.hiddenBlocks = normalizeHiddenBlocks(list);
@@ -414,6 +461,7 @@
     setHiddenBlocks([]);
     state.collections = [];
     state.currentIndex = 0;
+    state.markers = [];
     const pid = getActiveProjectId();
     const raw = localStorage.getItem(storageKey(STORAGE_KEY, pid));
     const idxRaw = localStorage.getItem(storageKey(STORAGE_INDEX_KEY, pid));
@@ -423,8 +471,10 @@
       if (parsed && Array.isArray(parsed.collections)) {
         state.collections = parsed.collections;
         if (Array.isArray(parsed.hiddenBlocks)) setHiddenBlocks(parsed.hiddenBlocks);
+        if (Array.isArray(parsed.markers)) state.markers = normalizeMarkers(parsed.markers);
       } else if (parsed && Array.isArray(parsed.hiddenBlocks)) {
         setHiddenBlocks(parsed.hiddenBlocks);
+        if (Array.isArray(parsed.markers)) state.markers = normalizeMarkers(parsed.markers);
       }
     }
 
@@ -438,7 +488,7 @@
 
   function saveState() {
     const pid = getActiveProjectId();
-    localStorage.setItem(storageKey(STORAGE_KEY, pid), JSON.stringify({ collections: state.collections, hiddenBlocks: state.hiddenBlocks }));
+    localStorage.setItem(storageKey(STORAGE_KEY, pid), JSON.stringify({ collections: state.collections, hiddenBlocks: state.hiddenBlocks, markers: state.markers }));
     localStorage.setItem(storageKey(STORAGE_INDEX_KEY, pid), String(state.currentIndex));
   }
 
@@ -466,10 +516,12 @@
   function resetInMemoryState() {
     state.collections = [];
     state.currentIndex = 0;
+    state.markers = [];
     setHiddenBlocks([]);
     // cross-file functions live on app
     if (typeof app.clearHighlights === 'function') app.clearHighlights();
     if (typeof app.setHighlightToolEnabled === 'function') app.setHighlightToolEnabled(false);
+    if (typeof app.setMarkerToolEnabled === 'function') app.setMarkerToolEnabled(false);
   }
 
   function scrollTop() {

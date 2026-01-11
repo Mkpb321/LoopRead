@@ -1012,6 +1012,10 @@
   app.onProjectsListClick = onProjectsListClick;
   app.createProjectFromUI = createProjectFromUI;
 
+  // Notes/markers overview
+  app.renderNotesView = renderNotesView;
+  app.onNotesListClick = onNotesListClick;
+
   // Some helpers used by other files
   app.closeMenu = closeMenu;
   app.openMenu = openMenu;

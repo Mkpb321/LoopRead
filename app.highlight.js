@@ -196,7 +196,16 @@
   }
 
   function toggleHighlightTool() {
-    setHighlightToolEnabled(!state.highlightToolEnabled);
+    // Tools are mutually exclusive: highlight, marker, or none.
+    // Clicking the active tool turns it off.
+    const willEnable = !state.highlightToolEnabled;
+    if (willEnable) {
+      // enable highlight, disable marker
+      setMarkerToolEnabled(false);
+      setHighlightToolEnabled(true);
+    } else {
+      setHighlightToolEnabled(false);
+    }
   }
 
   function isEditableTarget(target) {
@@ -246,7 +255,16 @@
   }
 
   function toggleMarkerTool() {
-    setMarkerToolEnabled(!state.markerToolEnabled);
+    // Tools are mutually exclusive: highlight, marker, or none.
+    // Clicking the active tool turns it off.
+    const willEnable = !state.markerToolEnabled;
+    if (willEnable) {
+      // enable marker, disable highlight
+      setHighlightToolEnabled(false);
+      setMarkerToolEnabled(true);
+    } else {
+      setMarkerToolEnabled(false);
+    }
   }
 
   function clearPendingMarkerStart() {

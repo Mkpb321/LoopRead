@@ -188,8 +188,10 @@
     document.body.classList.toggle('tool-highlight-active', state.highlightToolEnabled);
 
     if (els.btnHighlightTool) {
-      els.btnHighlightTool.classList.toggle('is-active', state.highlightToolEnabled);
-      els.btnHighlightTool.setAttribute('aria-pressed', state.highlightToolEnabled ? 'true' : 'false');
+      // Visual state can be suppressed while marker tool is active.
+      const showActive = state.highlightToolEnabled && !state.markerToolEnabled;
+      els.btnHighlightTool.classList.toggle('is-active', showActive);
+      els.btnHighlightTool.setAttribute('aria-pressed', showActive ? 'true' : 'false');
     }
   }
 
@@ -228,9 +230,18 @@
     if (!state.markerToolEnabled) {
       clearPendingMarkerStart();
       removeMarkerDecorations();
+      // restore highlight button visual state (highlight tool remains enabled/disabled as-is)
+      if (els.btnHighlightTool) {
+        els.btnHighlightTool.classList.toggle('is-active', !!state.highlightToolEnabled);
+        els.btnHighlightTool.setAttribute('aria-pressed', state.highlightToolEnabled ? 'true' : 'false');
+      }
     } else {
       applyAllMarkers();
-      app.showToast?.('Marker aktiv: Start- und Endwort tippen.');
+      // hide highlight button active state while in marker mode
+      if (els.btnHighlightTool) {
+        els.btnHighlightTool.classList.remove('is-active');
+        els.btnHighlightTool.setAttribute('aria-pressed', 'false');
+      }
     }
   }
 
@@ -323,7 +334,8 @@
     state.markers = [mk, ...(state.markers || [])];
     app.saveState?.();
     applyAllMarkers();
-    app.showToast('Markierung erstellt.');
+    // Immediately open note editor for the freshly created mark.
+    openMarkerNoteEditor(mk.id);
     return mk;
   }
 
@@ -382,7 +394,6 @@
 
     app.saveState?.();
     closeMarkerNoteEditor();
-    app.showToast('Notiz gespeichert.');
   }
 
   async function deleteMarkerFromEditor() {
@@ -390,11 +401,11 @@
     if (!box) return;
     const id = String(box.dataset.markerId || '').trim();
     if (!id) { closeMarkerNoteEditor(); return; }
+    // Close the note editor first; otherwise its overlay can block confirm clicks.
+    closeMarkerNoteEditor();
     const ok = await app.showConfirm?.('Markierung wirklich löschen? (Notiz wird ebenfalls entfernt)');
     if (!ok) return;
     deleteMarker(id);
-    closeMarkerNoteEditor();
-    app.showToast('Markierung gelöscht.');
   }
 
   function initMarkerNoteEditorEvents() {

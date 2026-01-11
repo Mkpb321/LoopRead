@@ -151,11 +151,12 @@
       const actions = document.createElement('div');
       actions.className = 'note-card-actions';
 
-      const btnOpen = document.createElement('button');
-      btnOpen.className = 'btn btn-ghost';
-      btnOpen.type = 'button';
-      btnOpen.dataset.action = 'open';
-      btnOpen.textContent = 'Öffnen';
+      const btnToggle = document.createElement('button');
+      btnToggle.className = 'btn btn-ghost';
+      btnToggle.type = 'button';
+      btnToggle.dataset.action = 'toggle';
+      const expanded = state.notesExpandedMarkerId === mk.id;
+      btnToggle.textContent = expanded ? 'Ausblenden' : 'Anzeigen';
 
       const btnDel = document.createElement('button');
       btnDel.className = 'btn btn-danger';
@@ -163,7 +164,7 @@
       btnDel.dataset.action = 'delete';
       btnDel.textContent = 'Löschen';
 
-      actions.appendChild(btnOpen);
+      actions.appendChild(btnToggle);
       actions.appendChild(btnDel);
 
       head.appendChild(title);
@@ -183,10 +184,69 @@
       body.appendChild(ex);
       body.appendChild(note);
 
+      const preview = document.createElement('div');
+      preview.className = 'note-card-preview';
+      preview.hidden = state.notesExpandedMarkerId !== mk.id;
+
+      if (!preview.hidden) {
+        renderMarkerPreview(preview, mk);
+      }
+
       card.appendChild(head);
       card.appendChild(body);
+      card.appendChild(preview);
 
       els.notesList.appendChild(card);
+    }
+  }
+
+  function renderMarkerPreview(container, mk) {
+    container.innerHTML = '';
+    const col = state.collections?.[mk.collectionIndex];
+    if (!Array.isArray(col) || col.length === 0) {
+      const div = document.createElement('div');
+      div.className = 'empty';
+      div.textContent = 'Diese Sammlung ist leer.';
+      container.appendChild(div);
+      return;
+    }
+
+    // Render the entire collection (read-only) and visually mark the marker range.
+    col.forEach((blk, bi) => {
+      const article = document.createElement('article');
+      article.className = 'block';
+      article.dataset.blockIndex = String(bi);
+
+      const content = document.createElement('div');
+      content.className = 'block-content note-preview';
+      content.textContent = String(blk || '');
+      article.appendChild(content);
+      container.appendChild(article);
+
+      // Tokenize words for accurate marker styling.
+      wrapWordsInElement(content);
+      const tokens = Array.from(content.querySelectorAll('.word-token'));
+      tokens.forEach((t, ti) => {
+        t.dataset.blockIndex = String(bi);
+        t.dataset.tokenIndex = String(ti);
+      });
+
+      if (bi === mk.blockIndex) {
+        for (let ti = mk.start; ti <= mk.end; ti++) {
+          const el = content.querySelector(`.word-token[data-token-index="${ti}"]`);
+          if (!el) continue;
+          el.classList.add('marker-token');
+          if (ti === mk.start) el.classList.add('marker-jump');
+        }
+      }
+    });
+
+    // Scroll marker into view inside this preview.
+    const jump = container.querySelector('.marker-jump');
+    if (jump) {
+      setTimeout(() => {
+        try { jump.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* ignore */ }
+      }, 0);
     }
   }
 
@@ -230,13 +290,21 @@
       const ok = await showConfirm('Markierung wirklich löschen? (Notiz wird ebenfalls entfernt)');
       if (!ok) return;
       app.deleteMarker?.(id);
+      if (state.notesExpandedMarkerId === id) state.notesExpandedMarkerId = null;
       renderNotesView();
-      showToast('Markierung gelöscht.');
       return;
     }
 
-    // default: open
-    navigateToMarker(id);
+    if (action === 'toggle') {
+      state.notesExpandedMarkerId = (state.notesExpandedMarkerId === id) ? null : id;
+      renderNotesView();
+      return;
+    }
+
+    // Clicking the card (not the buttons) edits the note
+    if (!action) {
+      app.openMarkerNoteEditor?.(id);
+    }
   }
 
 

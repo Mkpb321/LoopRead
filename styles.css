@@ -676,6 +676,16 @@ body.auth-locked .overlay{
   white-space: pre-wrap;
 }
 
+.note-card-preview{
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.note-preview .word-token{
+  cursor: default;
+}
+
 .note-box{
   position: fixed;
   top: 18px;

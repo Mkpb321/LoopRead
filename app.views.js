@@ -219,7 +219,7 @@
 
       const content = document.createElement('div');
       content.className = 'block-content note-preview';
-      content.textContent = String(blk || '');
+      content.innerHTML = formatContent(String((blk && blk.content) || '').trim());
       article.appendChild(content);
       container.appendChild(article);
 

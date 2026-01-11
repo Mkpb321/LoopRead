@@ -351,7 +351,8 @@
 
     state.markers = [mk, ...(state.markers || [])];
     app.saveState?.();
-    applyAllMarkers();
+      applyAllMarkers();
+      if (app.state?.view === 'notes') app.renderNotesView?.();
     // Immediately open note editor for the freshly created mark.
     openMarkerNoteEditor(mk.id);
     return mk;
@@ -411,6 +412,8 @@
     state.markers = [mk, ...state.markers];
 
     app.saveState?.();
+    // If user is in notes overview, refresh immediately
+    if (app.state?.view === 'notes') app.renderNotesView?.();
     closeMarkerNoteEditor();
   }
 

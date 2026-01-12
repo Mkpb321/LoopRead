@@ -733,3 +733,94 @@ body.auth-locked .overlay{
   color: #c00;
   background: transparent;
 }
+
+/* --- Theme: Cool Mist (style übernommen, ohne Button-Schatten) --- */
+:root{
+  --fg: #1a2140;
+  --bg: #f4f6fe;
+  --line: #c4cbe8;
+  --panel: #eceffd;
+  --btn: #e1e6fb;
+  --muted: #5a6286;
+  --accent: #4f46e5;
+  --radius: 12px;
+
+  /* Schatten-Variablen bleiben für Panels/Drawer nutzbar */
+  --shadow-sm: 0 1px 9px rgba(17,24,39,0.08);
+  --shadow-md: 0 12px 34px rgba(17,24,39,0.14);
+}
+
+body{ background: var(--bg); color: var(--fg); }
+a{ color: var(--accent); }
+
+/* Rundungen wie im Referenzstil */
+.icon-btn,
+.btn,
+.btn-ghost,
+.drawer-item,
+.input,
+.textarea,
+.confirm-box,
+.note-box,
+.toast,
+.drawer-select,
+.toast-close,
+.collection-del-btn{
+  border-color: var(--line);
+  border-radius: var(--radius);
+}
+
+/* Buttons: explizit ohne Schatten */
+.icon-btn,
+.btn,
+.btn-ghost,
+.drawer-item,
+.drawer-select,
+.toast-close,
+.collection-del-btn{
+  box-shadow: none !important;
+}
+
+/* Inputs & Panels dürfen dezent wirken (ohne Button-Schatten) */
+.input,
+.textarea,
+.confirm-box,
+.note-box,
+.toast{
+  box-shadow: var(--shadow-sm);
+}
+
+.icon-btn:focus-visible,
+.btn:focus-visible,
+.btn-ghost:focus-visible,
+.drawer-item:focus-visible,
+.input:focus-visible,
+.textarea:focus-visible,
+.drawer-select:focus-visible,
+select:focus-visible,
+[contenteditable="true"]:focus-visible{
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.topbar{
+  border-top-color: var(--line);
+  box-shadow: 0 -10px 26px rgba(15,23,42,0.08);
+}
+.drawer{
+  border-left-color: var(--line);
+  box-shadow: var(--shadow-md);
+}
+.drawer-sep,
+.block-sep::before{ background: var(--line); }
+
+.nav-index,
+.import-info,
+.view-subtitle,
+.add-hint,
+.login-hint,
+.drawer-footnote,
+.block-title-label{ color: var(--muted); }
+
+.radio input{ accent-color: var(--accent); }
+.marker-jump{ outline-color: var(--accent); }

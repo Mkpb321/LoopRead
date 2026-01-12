@@ -14,6 +14,9 @@ anmeldefenster ist etwas ugly
 
 ein info i um burgermenü das alles beschreibt
 
+nach bearbeiten auf der übersichtsseite soll auch gleich die änderung sichtbar sein
+
+projektseite ugly ¨
 
 Ich möchte, dass du die nachfolgend beschriebenen Änderungen am bestehenden Code vornimmst. Der vollständige Quellcode der Anwendung ist bereits beigefügt. Bitte implementiere alle Änderungen korrekt und konsistent und gib mir anschließend sämtliche Dateien vollständig als ZIP-Download zurück. Zusätzlich erwarte ich eine prägnante, einzeilige Commit-Message sowie eine nachvollziehbare Erklärung der vorgenommenen Änderungen. Ich werde dir danach weitere Änderungen schicken. Die sollst du immer am aktuellsten code vornehmen. Also dem letzten, dem du mir geschickt hast. und jeweils wieder sämtliche Dateien vollständig als ZIP-Download zurück geben.
 

@@ -158,6 +158,12 @@
       const expanded = state.notesExpandedMarkerId === mk.id;
       btnToggle.textContent = expanded ? 'Ausblenden' : 'Anzeigen';
 
+      const btnEdit = document.createElement('button');
+      btnEdit.className = 'btn btn-ghost';
+      btnEdit.type = 'button';
+      btnEdit.dataset.action = 'edit';
+      btnEdit.textContent = 'Bearbeiten';
+
       const btnDel = document.createElement('button');
       btnDel.className = 'btn btn-danger';
       btnDel.type = 'button';
@@ -165,6 +171,7 @@
       btnDel.textContent = 'Löschen';
 
       actions.appendChild(btnToggle);
+      actions.appendChild(btnEdit);
       actions.appendChild(btnDel);
 
       head.appendChild(title);
@@ -236,13 +243,12 @@
           const el = content.querySelector(`.word-token[data-token-index="${ti}"]`);
           if (!el) continue;
           el.classList.add('marker-token');
-          if (ti === mk.start) el.classList.add('marker-jump');
         }
       }
     });
 
     // Scroll marker into view inside this preview.
-    const jump = container.querySelector('.marker-jump');
+    const jump = container.querySelector('.marker-token');
     if (jump) {
       setTimeout(() => {
         try { jump.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* ignore */ }
@@ -301,10 +307,13 @@
       return;
     }
 
-    // Clicking the card (not the buttons) edits the note
-    if (!action) {
+    if (action === 'edit') {
       app.openMarkerNoteEditor?.(id);
+      return;
     }
+
+    // Klick auf Karte selbst macht nichts (Bearbeiten nur über Button)
+    return;
   }
 
 
@@ -338,6 +347,15 @@
       input.value = p.name || p.id;
       input.setAttribute('autocomplete', 'off');
       input.dataset.projectId = p.id;
+
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          ev.stopPropagation();
+          input.blur();
+        }
+      });
+      input.addEventListener('click', (ev) => ev.stopPropagation());
 
       top.appendChild(input);
 
@@ -385,8 +403,7 @@
     renderBlocks();
     setView('reader');
     scrollTop();
-    showToast('Projekt erstellt und geladen.');
-    return id;
+        return id;
   }
 
   function renameProjectFromUI(projectId) {
@@ -397,7 +414,6 @@
       return false;
     }
     renderProjectsView();
-    showToast('Projekt umbenannt.');
     return true;
   }
 
@@ -408,7 +424,6 @@
     renderBlocks();
     setView('reader');
     scrollTop();
-    showToast('Projekt geladen.');
   }
 
   function onProjectsListClick(e) {
@@ -774,7 +789,6 @@
     clearDeleteDraft();
     setView('reader');
     scrollTop();
-    showToast(`Gelöscht: ${count} Sammlung(en).`);
   }
 
   function cancelDeleteDraft() {
@@ -895,7 +909,6 @@
     clearHideDraft();
     setView('reader');
     scrollTop();
-    showToast('Ausgeblendete Textblöcke gespeichert.');
   }
 
   function cancelHideDraft() {

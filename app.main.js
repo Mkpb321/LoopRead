@@ -480,6 +480,14 @@
 
     els.btnHideCancel.addEventListener('click', cancelHideDraft);
     els.btnNotesBack?.addEventListener('click', () => { setView('reader'); app.scrollTop(); });
+    els.btnHelpBack?.addEventListener('click', () => { setView('reader'); app.scrollTop(); });
+
+    // Info button (Hilfe)
+    els.btnInfo?.addEventListener('click', () => {
+      if (state.menuOpen) app.closeMenu?.();
+      setView('help');
+      app.scrollTop();
+    });
     els.notesList?.addEventListener('click', onNotesListClick);
     els.btnHideSave.addEventListener('click', applyHideDraft);
 

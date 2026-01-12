@@ -941,14 +941,18 @@
     els.viewHide.classList.toggle('view-active', view === 'hide');
     els.viewProjects?.classList.toggle('view-active', view === 'projects');
     els.viewNotes?.classList.toggle('view-active', view === 'notes');
+    els.viewHelp?.classList.toggle('view-active', view === 'help');
 
     const hasCollections = state.collections.length > 0;
     const inReader = (view === 'reader');
 
+    // Used by CSS to hide reader-only controls without shifting layout.
+    document.body.classList.toggle('is-reader', inReader);
+
     els.btnPrev.disabled = !hasCollections || !inReader;
     els.btnNext.disabled = !hasCollections || !inReader;
 
-    // Highlight tooling makes only sense in reader view.
+    // Tool buttons are only usable in reader view, but tool *state* should persist across views.
     els.btnHighlightTool.disabled = !inReader;
     els.btnMarkerTool && (els.btnMarkerTool.disabled = !inReader);
     els.btnClearHighlights.disabled = !inReader;
@@ -961,10 +965,7 @@
       renderNotesView();
     }
 
-    if (!inReader) {
-      setHighlightToolEnabled(false);
-      setMarkerToolEnabled?.(false);
-    }
+    // Do not change active tool state when leaving reader; it should restore when returning.
 
     if (view === 'add') {
       buildEditors(3);

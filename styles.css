@@ -72,6 +72,19 @@ body{
   filter: brightness(0.82);
 }
 
+/* Reader-only controls should not shift the remaining buttons */
+body:not(.is-reader) .reader-only{
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#btnInfo{
+  font-weight: 700;
+  width: var(--tap);
+  padding: 0;
+}
+
 .main{
   width: 100%;
   max-width: 980px;
@@ -781,14 +794,25 @@ a{ color: var(--accent); }
   box-shadow: none !important;
 }
 
-/* Inputs & Panels dürfen dezent wirken (ohne Button-Schatten) */
+/* Inputs/Textareas: ohne Schatten (wie gewünscht); Panels dürfen dezent wirken */
 .input,
-.textarea,
+.textarea{
+  box-shadow: none !important;
+}
 .confirm-box,
 .note-box,
 .toast{
   box-shadow: var(--shadow-sm);
 }
+
+/* Projekte: Form-Abstände und Back-Button Breite */
+#view-projects .form{
+  padding: 6px var(--pad) 12px var(--pad);
+}
+#view-projects .label{ margin-bottom: 6px; display:block; }
+#view-projects #projectNewName{ margin-bottom: 10px; }
+#view-projects .actions{ padding-top: 10px; }
+#btnProjectsBack{ width: 100%; }
 
 .icon-btn:focus-visible,
 .btn:focus-visible,

@@ -15,16 +15,17 @@
 <body>
   <header class="topbar" role="banner">
     <nav class="nav" aria-label="Blocksammlungen Navigation">
-      <button id="btnPrev" class="icon-btn" type="button" aria-label="Zurück">‹</button>
+      <button id="btnPrev" class="icon-btn reader-only" type="button" aria-label="Zurück">‹</button>
 
-      <div class="nav-center" aria-live="polite">
+      <div class="nav-center reader-only" aria-live="polite">
         <span id="navIndex" class="nav-index">0/0</span>
       </div>
 
-      <button id="btnNext" class="icon-btn" type="button" aria-label="Weiter">›</button>
-      <button id="btnHighlightTool" class="icon-btn" type="button" aria-label="Wort-Markieren" aria-pressed="false">✦</button>
-      <button id="btnMarkerTool" class="icon-btn" type="button" aria-label="Einmal markieren" aria-pressed="false">✎</button>
-      <button id="btnClearHighlights" class="icon-btn" type="button" aria-label="Alle Markierungen löschen">✕</button>
+      <button id="btnNext" class="icon-btn reader-only" type="button" aria-label="Weiter">›</button>
+      <button id="btnHighlightTool" class="icon-btn reader-only" type="button" aria-label="Wort-Markieren" aria-pressed="false">✦</button>
+      <button id="btnMarkerTool" class="icon-btn reader-only" type="button" aria-label="Einmal markieren" aria-pressed="false">✎</button>
+      <button id="btnClearHighlights" class="icon-btn reader-only" type="button" aria-label="Alle Markierungen löschen">✕</button>
+      <button id="btnInfo" class="icon-btn" type="button" aria-label="Hilfe" title="Hilfe">i</button>
       <button id="btnMenu" class="icon-btn" type="button" aria-label="Menü öffnen" aria-haspopup="true" aria-controls="menuDrawer">☰</button>
     </nav>
   </header>
@@ -204,6 +205,45 @@
 
       <div class="actions">
         <button id="btnNotesBack" class="btn btn-ghost" type="button">Zurück</button>
+      </div>
+    </section>
+
+    <!-- Help View -->
+    <section id="view-help" class="view" aria-label="Hilfe">
+      <div class="add-header">
+        <h1 class="add-title">Hilfe</h1>
+        <p class="add-hint">Kurz erklärt: Seiten, Tools und typische Abläufe.</p>
+      </div>
+
+      <div class="help" aria-live="polite">
+        <h2 class="help-h2">Seiten</h2>
+        <ul class="help-list">
+          <li><strong>Projekte</strong>: Projekte anlegen, umbenennen, laden. Jedes Projekt hat eigene Sammlungen/Markierungen.</li>
+          <li><strong>Lesen</strong>: Durch Textblöcke blättern und Tools verwenden.</li>
+          <li><strong>Neue Blocksammlung</strong>: Sammlung anlegen (Titel + mehrere Textblöcke).</li>
+          <li><strong>Import/Export</strong>: Excel importieren/exportieren (immer nur im aktuellen Projekt).</li>
+          <li><strong>Sammlungen löschen</strong>: Sammlungen markieren und anschließend speichern.</li>
+          <li><strong>Textblöcke ausblenden</strong>: Blöcke global im Projekt ausblenden/einblenden.</li>
+          <li><strong>Markierungen &amp; Notizen</strong>: Alle Markierungen ansehen, bearbeiten und löschen.</li>
+        </ul>
+
+        <h2 class="help-h2">Tools (nur in „Lesen“ sichtbar)</h2>
+        <ul class="help-list">
+          <li><strong>✦ Highlight</strong>: Wörter highlighten. Tippe auf ein Wort, um es ein/aus zu highlighten.</li>
+          <li><strong>✎ Marker</strong>: Markierung mit Notiz. Tippe Startwort, dann Endwort (erneut Startwort = 1 Wort). Danach öffnet sich die Notiz.</li>
+          <li><strong>✕ Löschen</strong>: Entfernt alle Highlights im aktuellen Textblock.</li>
+        </ul>
+
+        <h2 class="help-h2">Markierungen &amp; Notizen</h2>
+        <ul class="help-list">
+          <li><strong>Anzeigen</strong>: Zeigt die zugehörige Textblock-Sammlung inline (Markierungen rot/fett/unterstrichen).</li>
+          <li><strong>Bearbeiten</strong>: Öffnet die Notiz zur Markierung.</li>
+          <li><strong>Löschen</strong>: Entfernt Markierung und Notiz.</li>
+        </ul>
+      </div>
+
+      <div class="actions">
+        <button id="btnHelpBack" class="btn btn-ghost" type="button">Zurück</button>
       </div>
     </section>
 

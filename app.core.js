@@ -16,6 +16,7 @@
     btnPrev: document.getElementById('btnPrev'),
     btnNext: document.getElementById('btnNext'),
     navIndex: document.getElementById('navIndex'),
+    btnInfo: document.getElementById('btnInfo'),
     btnMenu: document.getElementById('btnMenu'),
 
     btnHighlightTool: document.getElementById('btnHighlightTool'),
@@ -30,9 +31,11 @@
     viewHide: document.getElementById('view-hide'),
     viewProjects: document.getElementById('view-projects'),
     viewNotes: document.getElementById('view-notes'),
+    viewHelp: document.getElementById('view-help'),
 
     notesList: document.getElementById('notesList'),
     btnNotesBack: document.getElementById('btnNotesBack'),
+    btnHelpBack: document.getElementById('btnHelpBack'),
 
     hideBlocksList: document.getElementById('hideBlocksList'),
 

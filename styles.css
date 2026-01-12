@@ -802,8 +802,10 @@ a{ color: var(--accent); }
 /* Karten/Listenboxen sollen Schatten haben (z.B. Projekte, Markierungs-Übersicht) */
 .project-card,
 .note-card{
-  box-shadow: var(--shadow-sm);
+  border: 2px solid var(--line);
+  box-shadow: 0 2px 12px rgba(17,24,39,0.14);
 }
+
 
 /* Projekte: Form-Abstände und Back-Button Breite */
 #view-projects .form{
@@ -848,3 +850,8 @@ select:focus-visible,
 
 .radio input{ accent-color: var(--accent); }
 .marker-jump{ outline-color: var(--accent); }
+
+/* Hilfe: Text innerhalb der Margin */
+.help{
+  padding: var(--pad);
+}

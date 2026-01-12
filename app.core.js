@@ -16,7 +16,7 @@
     btnPrev: document.getElementById('btnPrev'),
     btnNext: document.getElementById('btnNext'),
     navIndex: document.getElementById('navIndex'),
-    btnInfo: document.getElementById('btnInfo'),
+    menuToHelp: document.getElementById('menuToHelp'),
     btnMenu: document.getElementById('btnMenu'),
 
     btnHighlightTool: document.getElementById('btnHighlightTool'),

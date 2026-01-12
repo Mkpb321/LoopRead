@@ -443,6 +443,7 @@
     els.menuToDelete.addEventListener('click', () => { setView('delete'); closeMenu(); });
     els.menuToHide.addEventListener('click', () => { setView('hide'); closeMenu(); });
     els.menuToNotes?.addEventListener('click', () => { setView('notes'); closeMenu(); });
+    els.menuToHelp?.addEventListener('click', () => { setView('help'); closeMenu(); });
 
     els.menuLoadSample.addEventListener('click', app.loadSamples);
     els.menuClearAll.addEventListener('click', app.clearAll);
@@ -482,12 +483,6 @@
     els.btnNotesBack?.addEventListener('click', () => { setView('reader'); app.scrollTop(); });
     els.btnHelpBack?.addEventListener('click', () => { setView('reader'); app.scrollTop(); });
 
-    // Info button (Hilfe)
-    els.btnInfo?.addEventListener('click', () => {
-      if (state.menuOpen) app.closeMenu?.();
-      setView('help');
-      app.scrollTop();
-    });
     els.notesList?.addEventListener('click', onNotesListClick);
     els.btnHideSave.addEventListener('click', applyHideDraft);
 

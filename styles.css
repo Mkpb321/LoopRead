@@ -79,12 +79,6 @@ body:not(.is-reader) .reader-only{
   pointer-events: none;
 }
 
-#btnInfo{
-  font-weight: 700;
-  width: var(--tap);
-  padding: 0;
-}
-
 .main{
   width: 100%;
   max-width: 980px;
@@ -802,6 +796,12 @@ a{ color: var(--accent); }
 .confirm-box,
 .note-box,
 .toast{
+  box-shadow: var(--shadow-sm);
+}
+
+/* Karten/Listenboxen sollen Schatten haben (z.B. Projekte, Markierungs-Übersicht) */
+.project-card,
+.note-card{
   box-shadow: var(--shadow-sm);
 }
 

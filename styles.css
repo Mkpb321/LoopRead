@@ -7,6 +7,9 @@
   --panel: #f2f2f2; /* hellgrau: Navigation + Drawer */
   --btn: #e0e0e0;   /* etwas dunkler: Buttons */
 
+  /* Primärfarbe (z. B. für „Lesen“ im Menü) */
+  --primary: #dbe3ff;
+
   --pad: 12px;
   --tap: 34px;
 }
@@ -239,7 +242,8 @@ body.tool-highlight-active select{
   background: var(--bg);
   color: var(--fg);
   padding: 8px;
-  font-size: 14px;
+  /* iOS Safari zoomt bei <16px Schriftgröße in Inputs */
+  font-size: 16px;
   border-radius: 0;
   outline: none;
 }
@@ -345,9 +349,27 @@ body.tool-highlight-active select{
   background: var(--btn);
   color: var(--fg);
   cursor: pointer;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
   text-align: left;
   padding: 0 10px;
+}
+
+.drawer-item.primary{
+  background: var(--primary);
+}
+
+.drawer-icon{
+  width: 22px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.drawer-text{
+  font-size: 12px;
 }
 
 .drawer-item:active{ transform: translateY(1px); }

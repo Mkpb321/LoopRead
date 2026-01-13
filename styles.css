@@ -363,13 +363,26 @@ body.tool-highlight-active select{
 
 .drawer-icon{
   width: 22px;
-  text-align: center;
-  font-size: 16px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  opacity: 0.9;
+}
+
+.drawer-svg{
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .drawer-text{
-  font-size: 12px;
+  font-size: 11px;
+  opacity: 0.78;
 }
 
 .drawer-item:active{ transform: translateY(1px); }
@@ -877,3 +890,7 @@ select:focus-visible,
 .help{
   padding: var(--pad);
 }
+
+
+.drawer-item.primary .drawer-text{ opacity: 0.95; }
+.drawer-item.primary .drawer-icon{ opacity: 1; }

@@ -462,6 +462,14 @@ body.tool-highlight-active select{
 
 .login-form .btn{ margin-top: 6px; }
 
+/* Login button should not shrink; keep it full-width like inputs */
+.login-form #btnLogin{
+  width: 100%;
+  flex: 0 0 auto;
+  height: var(--tap);
+  font-size: 16px;
+}
+
 .login-footnote{ margin-top: 14px; font-size: 11px; line-height: 1.3; opacity: 0.9; }
 
 /* Auth lock: hide app chrome when not logged in */

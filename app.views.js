@@ -47,7 +47,7 @@
       div.className = 'empty';
       div.innerHTML = `
         <strong>Keine Daten.</strong><br/>
-        Öffne das Menü (☰) und lade Probedaten, importiere oder erstelle eine neue Blocksammlung.
+        Öffne das Menü (☰) und importiere Daten oder erstelle eine neue Blocksammlung.
       `;
       els.blocksContainer.appendChild(div);
       return;
@@ -625,50 +625,6 @@ Dabei werden Sammlungen und Markierungen endgültig entfernt.`, 'Löschen', 'Abb
     scrollTop();
   }
 
-  // Sample data
-  function sampleCollections() {
-    return [
-      [
-        { title: 'Deutsch', content: 'Dies ist ein kurzer Probetext mit Umlauten: äöü ÄÖÜ ß.\n\nLoopRead ist für platzsparendes Lesen gedacht.' },
-        { title: 'Altgriechisch', content: 'Ἐν ἀρχῇ ἦν ὁ λόγος, καὶ ὁ λόγος ἦν πρὸς τὸν θεόν, καὶ θεὸς ἦν ὁ λόγος.' },
-        { title: 'Hebräisch', content: 'בְּרֵאשִׁית בָּרָא אֱלֹהִים אֵת הַשָּׁמַיִם וְאֵת הָאָרֶץ' },
-      ],
-      [
-        { title: 'Mischtext', content: 'Deutsch und Ελληνικά gemischt.\n\nΚαλημέρα!\n\nHinweis: Der Textblock nutzt Times New Roman (serif), damit auch diakritische Zeichen gut dargestellt werden.' },
-        { title: 'Hebräisch (RTL)', content: 'שָׁלוֹם\n\nהטקסט אמור להציג ניקוד כראוי.' },
-      ],
-      [
-        { title: 'Langtext', content: 'Ein längerer Textblock, um vertikales Scrollen zu testen.\n\n' + 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(40) },
-        { title: 'Zitat', content: '„Schlichtheit ist die höchste Stufe der Vollendung.“' },
-        { title: 'Altgriechisch 2', content: 'πάντα ῥεῖ καὶ οὐδὲν μένει.' },
-        { title: 'Hebräisch 2', content: 'אָדָם לְעָמָל יוּלָּד' },
-      ],
-      [
-        { title: 'Notizen', content: '- Blocksammlungen blättern: unten oder per Swipe\n- Textblöcke: Titel klein, Text groß\n- Alles lokal gespeichert' },
-      ],
-    ];
-  }
-
-  async function loadSamples() {
-    const ok = await showConfirm('Probedaten laden? Dabei werden deine aktuellen Daten (Sammlungen & Markierungen) im Firestore überschrieben.', 'Laden', 'Abbrechen');
-    if (!ok) return;
-
-    setHiddenBlocks([]);
-
-    try {
-      await app.replaceCollections(sampleCollections());
-    } catch {
-      return;
-    }
-
-    renderNav();
-    renderBlocks();
-    setView('reader');
-    closeMenu();
-    scrollTop();
-  }
-
-
   function resetDeleteDraft() {
     deleteDraft = { marked: new Set() };
     updateDeleteActions();
@@ -1051,7 +1007,6 @@ Dabei werden Sammlungen und Markierungen endgültig entfernt.`, 'Löschen', 'Abb
   app.ensureExtraEditorIfNeeded = ensureExtraEditorIfNeeded;
   app.saveNewCollection = saveNewCollection;
 
-  app.loadSamples = loadSamples;
 
   app.resetDeleteDraft = resetDeleteDraft;
   app.renderDeleteView = renderDeleteView;

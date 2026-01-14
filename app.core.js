@@ -73,7 +73,6 @@
     menuToNotes: document.getElementById('menuToNotes'),
     menuToHelp: document.getElementById('menuToHelp'),
 
-    menuLoadSample: document.getElementById('menuLoadSample'),
     // menuClearAll intentionally removed (no "Alle Daten löschen" anymore)
     menuClearAll: document.getElementById('menuClearAll'),
     menuLogout: document.getElementById('menuLogout'),

@@ -457,8 +457,6 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
     els.menuToNotes?.addEventListener('click', () => { setView('notes'); closeMenu(); });
     els.menuToHelp?.addEventListener('click', () => { setView('help'); closeMenu(); });
 
-    els.menuLoadSample.addEventListener('click', app.loadSamples);
-
     els.menuLogout.addEventListener('click', () => {
       if (!firebaseReady) { showToast('Logout derzeit nicht verfügbar.'); return; }
       firebase.auth().signOut();

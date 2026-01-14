@@ -894,17 +894,49 @@ select:focus-visible,
 .radio input{ accent-color: var(--accent); }
 .marker-jump{ outline-color: var(--accent); }
 
-/* Hilfe: Text innerhalb der Margin */
-.help{
-  padding: var(--pad);
+/* Help */
+.help-grid{
+  display: grid;
+  gap: 10px;
 }
 
-.help-note{
-  margin: 0 0 12px 0;
-  color: var(--muted);
+.help-card{
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 10px;
 }
 
-.help-note strong{ color: var(--text); }
+.help-card-title{
+  font-size: 12px;
+  font-weight: 800;
+  margin: 0 0 10px 0;
+}
+
+.help-kv{
+  display: grid;
+  gap: 8px;
+}
+
+.help-item{
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.help-item strong{ font-weight: 800; }
+
+.help-pill{
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
 
 
 .drawer-item.primary .drawer-text{ opacity: 0.95; }

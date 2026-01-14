@@ -210,41 +210,68 @@
 
     <!-- Help View -->
     <section id="view-help" class="view" aria-label="Hilfe">
-      <div class="add-header">
-        <h1 class="add-title">Hilfe</h1>
-        <p class="add-hint">Kurz erklärt: Seiten, Tools und typische Abläufe.</p>
-      </div>
+      <div class="view-inner">
+        <h2 class="view-title">Hilfe</h2>
+        <p class="view-subtitle">Kurzübersicht über Ansichten, Navigation unten und das Menü.</p>
 
-      <div class="help" aria-live="polite">
-        <p class="help-note"><strong>Speicherung:</strong> Alle Projekte, Sammlungen und Markierungen werden online in Firestore gespeichert (kein lokaler Browser-Speicher mehr).</p>
-        <h2 class="help-h2">Seiten</h2>
-        <ul class="help-list">
-          <li><strong>Projekte</strong>: Projekte anlegen, umbenennen, löschen, laden. Jedes Projekt hat eigene Sammlungen/Markierungen.</li>
-          <li><strong>Lesen</strong>: Durch Textblöcke blättern und Tools verwenden.</li>
-          <li><strong>Neue Blocksammlung</strong>: Sammlung anlegen (Titel + mehrere Textblöcke).</li>
-          <li><strong>Import/Export</strong>: Excel importieren/exportieren (immer nur im aktuellen Projekt).</li>
-          <li><strong>Sammlungen löschen</strong>: Sammlungen markieren und anschließend speichern.</li>
-          <li><strong>Textblöcke ausblenden</strong>: Blöcke global im Projekt ausblenden/einblenden.</li>
-          <li><strong>Markierungen &amp; Notizen</strong>: Alle Markierungen ansehen, bearbeiten und löschen.</li>
-        </ul>
+        <div class="help-grid" aria-live="polite">
+          <div class="help-card">
+            <div class="help-card-title">Speicherung &amp; Verhalten</div>
+            <div class="help-kv">
+              <div class="help-item"><span class="help-pill">Cloud</span><div><strong>In Firestore</strong>: Projekte, Sammlungen (inkl. Textblöcke), Markierungen und Notizen.</div></div>
+              <div class="help-item"><span class="help-pill">Browser</span><div><strong>Lokal pro Gerät</strong>: zuletzt gelesene Sammlung und ausgeblendete Blöcke (werden nicht zwischen Geräten synchronisiert).</div></div>
+              <div class="help-item"><span class="help-pill">Hinweis</span><div><strong>Highlights</strong> sind nur visuell und werden nicht gespeichert (nach Reload weg).</div></div>
+              <div class="help-item"><span class="help-pill">Online</span><div>Die App ist online-pflichtig; es gibt kein Live-Update zwischen Geräten.</div></div>
+            </div>
+          </div>
 
-        <h2 class="help-h2">Tools (nur in „Lesen“ sichtbar)</h2>
-        <ul class="help-list">
-          <li><strong>✦ Highlight</strong>: Wörter highlighten. Tippe auf ein Wort, um es ein/aus zu highlighten.</li>
-          <li><strong>✎ Marker</strong>: Markierung mit Notiz. Tippe Startwort, dann Endwort (erneut Startwort = 1 Wort). Danach öffnet sich die Notiz.</li>
-          <li><strong>✕ Löschen</strong>: Entfernt alle Highlights im aktuellen Textblock.</li>
-        </ul>
+          <div class="help-card">
+            <div class="help-card-title">Ansichten</div>
+            <div class="help-kv">
+              <div class="help-item"><span class="help-pill">Login</span><div>Einloggen, um auf deine Daten in Firestore zuzugreifen.</div></div>
+              <div class="help-item"><span class="help-pill">Projekte</span><div>Projekt erstellen, umbenennen, öffnen und löschen. Jedes Projekt hat eigene Sammlungen und Markierungen.</div></div>
+              <div class="help-item"><span class="help-pill">Lesen</span><div>Sammlungen durchblättern und Tools verwenden (Highlight/Marker). Markierungen werden gespeichert.</div></div>
+              <div class="help-item"><span class="help-pill">Neue Blocksammlung</span><div>Neue Sammlung anlegen (Titel + mehrere Textblöcke) und speichern.</div></div>
+              <div class="help-item"><span class="help-pill">Import</span><div>Excel importieren (Anhängen oder Ersetzen) – immer nur im aktuellen Projekt.</div></div>
+              <div class="help-item"><span class="help-pill">Sammlungen löschen</span><div>Mehrere Sammlungen markieren und anschließend entfernen (inkl. zugehöriger Markierungen).</div></div>
+              <div class="help-item"><span class="help-pill">Textblöcke ausblenden</span><div>Blöcke im aktuellen Projekt ein-/ausblenden (nur lokal auf diesem Gerät).</div></div>
+              <div class="help-item"><span class="help-pill">Markierungen &amp; Notizen</span><div>Alle Markierungen im Projekt ansehen, zur Stelle springen, Notiz bearbeiten oder Markierung löschen.</div></div>
+            </div>
+          </div>
 
-        <h2 class="help-h2">Markierungen &amp; Notizen</h2>
-        <ul class="help-list">
-          <li><strong>Anzeigen</strong>: Zeigt die zugehörige Textblock-Sammlung inline (Markierungen rot/fett/unterstrichen).</li>
-          <li><strong>Bearbeiten</strong>: Öffnet die Notiz zur Markierung.</li>
-          <li><strong>Löschen</strong>: Entfernt Markierung und Notiz.</li>
-        </ul>
-      </div>
+          <div class="help-card">
+            <div class="help-card-title">Navigation unten (in „Lesen“)</div>
+            <div class="help-kv">
+              <div class="help-item"><span class="help-pill">‹</span><div>Vorherige Sammlung.</div></div>
+              <div class="help-item"><span class="help-pill">0/0</span><div>Aktuelle Position innerhalb der Sammlungen.</div></div>
+              <div class="help-item"><span class="help-pill">›</span><div>Nächste Sammlung.</div></div>
+              <div class="help-item"><span class="help-pill">✦</span><div><strong>Highlight-Modus</strong>: Tippe Wörter an, um sie ein/aus zu highlighten (nur visuell).</div></div>
+              <div class="help-item"><span class="help-pill">✎</span><div><strong>Marker-Modus</strong>: Startwort tippen, Endwort tippen (gleiches Wort = 1 Wort). Danach Notiz speichern.</div></div>
+              <div class="help-item"><span class="help-pill">✕</span><div>Entfernt alle Highlights im aktuellen Textblock.</div></div>
+              <div class="help-item"><span class="help-pill">☰</span><div>Menü öffnen.</div></div>
+            </div>
+          </div>
 
-      <div class="actions">
-        <button id="btnHelpBack" class="btn btn-ghost" type="button">Zurück</button>
+          <div class="help-card">
+            <div class="help-card-title">Menü (☰)</div>
+            <div class="help-kv">
+              <div class="help-item"><span class="help-pill">Lesen</span><div>Zur Leseansicht wechseln.</div></div>
+              <div class="help-item"><span class="help-pill">Projekte</span><div>Projektübersicht öffnen (anlegen/umbenennen/löschen).</div></div>
+              <div class="help-item"><span class="help-pill">Markierungen</span><div>Liste aller Markierungen &amp; Notizen im aktuellen Projekt.</div></div>
+              <div class="help-item"><span class="help-pill">Neu</span><div>Neue Blocksammlung erstellen.</div></div>
+              <div class="help-item"><span class="help-pill">Import</span><div>Excel importieren.</div></div>
+              <div class="help-item"><span class="help-pill">Export</span><div>Aktuelles Projekt als Excel exportieren.</div></div>
+              <div class="help-item"><span class="help-pill">Ausblenden</span><div>Textblöcke ausblenden/einblenden (lokal).</div></div>
+              <div class="help-item"><span class="help-pill">Löschen</span><div>Sammlungen löschen (Mehrfachauswahl).</div></div>
+              <div class="help-item"><span class="help-pill">Hilfe</span><div>Diese Hilfeseite.</div></div>
+              <div class="help-item"><span class="help-pill">Logout</span><div>Abmelden.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="btnHelpBack" class="btn btn-ghost" type="button">Zurück</button>
+        </div>
       </div>
     </section>
 
@@ -267,7 +294,7 @@
       <button id="menuToHelp" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18h.01"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"/><path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"/></svg></span><span class="drawer-text">Hilfe</span></button>
 <div class="drawer-sep" role="separator" aria-hidden="true"></div>
 
-      <button id="menuLoadSample" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.2 4.2L17 7l-3.8 1.1L12 12l-1.2-3.9L7 7l3.8-.8Z"/><path d="M19 12l.8 2.7L22 15l-2.2.7L19 18l-.8-2.3L16 15l2.2-.3Z"/><path d="M5 13l.8 2.7L8 16l-2.2.7L5 19l-.8-2.3L2 16l2.2-.3Z"/></svg></span><span class="drawer-text">Probedaten laden</span></button>      <button id="menuLogout" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l-1 0a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1"/><path d="M15 12H7"/><path d="M15 12l-3-3"/><path d="M15 12l-3 3"/><path d="M17 7h4v10h-4"/></svg></span><span class="drawer-text">Logout</span></button>
+      <button id="menuLogout" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l-1 0a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1"/><path d="M15 12H7"/><path d="M15 12l-3-3"/><path d="M15 12l-3 3"/><path d="M17 7h4v10h-4"/></svg></span><span class="drawer-text">Logout</span></button>
 </div>
   </aside>
 

@@ -31,8 +31,7 @@
     setActiveProject,
     createProject,
     renameProject,
-    updateProjectNameUI,
-    clearAllUserData,
+    updateProjectNameUI
   } = app;
 
   function renderNav() {
@@ -135,7 +134,7 @@
 
     for (const mk of marks) {
       // skip malformed markers
-      if (mk.collectionIndex == null || mk.blockIndex == null) continue;
+      if (!mk.collectionId || mk.blockIndex == null) continue;
 
       const card = document.createElement('div');
       card.className = 'note-card';
@@ -146,7 +145,9 @@
 
       const title = document.createElement('div');
       title.className = 'note-card-title';
-      title.textContent = `Sammlung ${mk.collectionIndex + 1} · Block ${mk.blockIndex + 1}`;
+      const cIdx = app.getCollectionIndexById?.(mk.collectionId);
+      const cNo = (cIdx == null) ? '?' : (cIdx + 1);
+      title.textContent = `Sammlung ${cNo} · Block ${mk.blockIndex + 1}`;
 
       const actions = document.createElement('div');
       actions.className = 'note-card-actions';
@@ -209,7 +210,8 @@
 
   function renderMarkerPreview(container, mk) {
     container.innerHTML = '';
-    const col = state.collections?.[mk.collectionIndex];
+    const cIdx = app.getCollectionIndexById?.(mk.collectionId);
+    const col = (cIdx == null) ? null : state.collections?.[cIdx];
     if (!Array.isArray(col) || col.length === 0) {
       const div = document.createElement('div');
       div.className = 'empty';
@@ -266,7 +268,9 @@
     }
 
     // Switch to collection
-    state.currentIndex = mk.collectionIndex;
+    const cIdx = app.getCollectionIndexById?.(mk.collectionId);
+    if (cIdx == null) { showToast('Sammlung nicht gefunden.'); return; }
+    state.currentIndex = cIdx;
     app.clampIndex();
 
     // Ensure marker tool is enabled so the mark is visible
@@ -318,10 +322,12 @@
 
 
   // --- Projects (top-level grouping) ---
-  function renderProjectsView() {
+  async function renderProjectsView() {
     if (!els.projectsList) return;
 
-    loadProjectsMeta();
+    els.projectsList.innerHTML = '<div class="empty">Lade…</div>';
+
+    await loadProjectsMeta();
     updateProjectNameUI();
 
     els.projectsList.innerHTML = '';
@@ -384,8 +390,16 @@
       btnRename.dataset.action = 'rename';
       btnRename.dataset.projectId = p.id;
 
+      const btnDelete = document.createElement('button');
+      btnDelete.type = 'button';
+      btnDelete.className = 'btn btn-ghost';
+      btnDelete.textContent = 'Löschen';
+      btnDelete.dataset.action = 'delete';
+      btnDelete.dataset.projectId = p.id;
+
       actions.appendChild(btnLoad);
       actions.appendChild(btnRename);
+      actions.appendChild(btnDelete);
 
       card.appendChild(top);
       card.appendChild(actions);
@@ -394,22 +408,22 @@
     }
   }
 
-  function createProjectFromUI() {
+  async function createProjectFromUI() {
     const name = els.projectNewName ? els.projectNewName.value : '';
-    const id = createProject(name);
+    const id = await createProject(name);
     if (els.projectNewName) els.projectNewName.value = '';
-    loadState();
+    await loadState();
     renderNav();
     renderBlocks();
     setView('reader');
     scrollTop();
-        return id;
+    return id;
   }
 
-  function renameProjectFromUI(projectId) {
+  async function renameProjectFromUI(projectId) {
     const input = Array.from(els.projectsList?.querySelectorAll('input[data-project-id]') || []).find(el => el.dataset.projectId === projectId);
     const name = input ? input.value : '';
-    if (!renameProject(projectId, name)) {
+    if (!(await renameProject(projectId, name))) {
       showToast('Projektname ungültig.');
       return false;
     }
@@ -417,9 +431,9 @@
     return true;
   }
 
-  function loadProjectFromUI(projectId) {
-    setActiveProject(projectId);
-    loadState();
+  async function loadProjectFromUI(projectId) {
+    await setActiveProject(projectId);
+    await loadState();
     renderNav();
     renderBlocks();
     setView('reader');
@@ -435,6 +449,33 @@
 
     if (action === 'load') loadProjectFromUI(pid);
     if (action === 'rename') renameProjectFromUI(pid);
+    if (action === 'delete') deleteProjectFromUI(pid);
+  }
+
+  async function deleteProjectFromUI(projectId) {
+    const pid = String(projectId || '').trim();
+    if (!pid) return;
+
+    const p = (state.projects || []).find(x => x.id === pid);
+    const name = p?.name || pid;
+
+    const ok = await showConfirm(`Projekt „${name}“ wirklich löschen?
+
+Dabei werden Sammlungen und Markierungen endgültig entfernt.`, 'Löschen', 'Abbrechen');
+    if (!ok) return;
+
+    const done = await app.deleteProject?.(pid);
+    if (!done) return;
+
+    // refresh project list and reader state (active project may have changed)
+    await loadProjectsMeta();
+    updateProjectNameUI();
+    await loadState();
+    renderNav();
+    renderBlocks();
+
+    // stay in projects view; list will refresh
+    renderProjectsView();
   }
 
 
@@ -543,7 +584,7 @@
     }
   }
 
-  function saveNewCollection() {
+  async function saveNewCollection() {
     const values = getEditorValues().map(v => ({
       title: (v.title || '').trim(),
       content: (v.content || '').trim(),
@@ -567,9 +608,16 @@
       return;
     }
 
-    state.collections.push(complete);
-    state.currentIndex = state.collections.length - 1;
-    saveState();
+    const newIndex = state.collections.length;
+    state.currentIndex = newIndex;
+
+    try {
+      await app.appendCollections([complete]);
+    } catch {
+      // Core shows a toast on failure.
+      return;
+    }
+
     renderNav();
     renderBlocks();
     setView('reader');
@@ -602,12 +650,17 @@
   }
 
   async function loadSamples() {
-    const ok = await showConfirm('Probedaten laden? Dabei werden deine aktuellen Daten gelöscht.', 'Laden', 'Abbrechen');
+    const ok = await showConfirm('Probedaten laden? Dabei werden deine aktuellen Daten (Sammlungen & Markierungen) im Firestore überschrieben.', 'Laden', 'Abbrechen');
     if (!ok) return;
 
-    state.collections = sampleCollections();
-    state.currentIndex = 0;
-    saveState();
+    setHiddenBlocks([]);
+
+    try {
+      await app.replaceCollections(sampleCollections());
+    } catch {
+      return;
+    }
+
     renderNav();
     renderBlocks();
     setView('reader');
@@ -615,21 +668,6 @@
     scrollTop();
   }
 
-  async function clearAll() {
-    const ok = await showConfirm('Alle Projekte und alle Daten wirklich löschen?', 'Löschen', 'Abbrechen');
-    if (!ok) return;
-
-    clearAllUserData();
-    renderNav();
-    renderBlocks();
-    setView('reader');
-    closeMenu();
-    scrollTop();
-  }
-
-  // --- Delete collections (draft; applied on save) ---
-  /** @type {{ marked:Set<number> } | null} */
-  let deleteDraft = null;
 
   function resetDeleteDraft() {
     deleteDraft = { marked: new Set() };
@@ -764,7 +802,7 @@
     return 0;
   }
 
-  function applyDeleteDraft() {
+  async function applyDeleteDraft() {
     const marked = deleteDraft?.marked;
     const count = marked?.size || 0;
 
@@ -776,12 +814,17 @@
 
     const total = state.collections.length;
     const oldIdx = state.currentIndex;
-
     const newIdx = computeNewIndexAfterDeletion(oldIdx, marked, total);
+    const indices = Array.from(marked).sort((a, b) => a - b);
 
-    state.collections = state.collections.filter((_, idx) => !marked.has(idx));
+    try {
+      await app.deleteCollectionsByIndices(indices);
+    } catch {
+      // Errors are already toasted in core.
+      return;
+    }
+
     state.currentIndex = state.collections.length === 0 ? 0 : Math.min(newIdx, state.collections.length - 1);
-
     saveState();
     renderNav();
     renderBlocks();
@@ -1009,7 +1052,6 @@
   app.saveNewCollection = saveNewCollection;
 
   app.loadSamples = loadSamples;
-  app.clearAll = clearAll;
 
   app.resetDeleteDraft = resetDeleteDraft;
   app.renderDeleteView = renderDeleteView;

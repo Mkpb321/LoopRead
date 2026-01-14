@@ -232,12 +232,22 @@
     }
 
     if (mode === 'replace') {
-      state.collections = importedAll;
+      // Replace current project data in Firestore (Sammlungen + Markierungen)
+      try {
+        await app.replaceCollections(importedAll);
+      } catch {
+        return;
+      }
       state.currentIndex = 0;
     } else {
+      // Append in Firestore and jump to first imported collection
       const oldLen = state.collections.length;
-      state.collections = state.collections.concat(importedAll);
       state.currentIndex = oldLen; // springe zur ersten importierten Sammlung
+      try {
+        await app.appendCollections(importedAll);
+      } catch {
+        return;
+      }
       app.clampIndex();
     }
 
@@ -248,7 +258,7 @@
     closeMenu();
     app.scrollTop();
 
-    showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${sheetNames.length} Tabellenblatt(ern) übernommen.`);
+showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${sheetNames.length} Tabellenblatt(ern) übernommen.`);
   }
 
   // --- Export (Excel .xlsx; import-kompatibel) ---
@@ -398,6 +408,8 @@
     }
     try {
       if (!firebase.apps || firebase.apps.length === 0) firebase.initializeApp(firebaseConfig);
+    // Firestore (Compat)
+    app.db = firebase.firestore();
       firebaseReady = true;
     } catch (e) {
       firebaseReady = false;
@@ -446,7 +458,6 @@
     els.menuToHelp?.addEventListener('click', () => { setView('help'); closeMenu(); });
 
     els.menuLoadSample.addEventListener('click', app.loadSamples);
-    els.menuClearAll.addEventListener('click', app.clearAll);
 
     els.menuLogout.addEventListener('click', () => {
       if (!firebaseReady) { showToast('Logout derzeit nicht verfügbar.'); return; }
@@ -537,12 +548,16 @@
     installSwipe();
 
     if (firebaseReady) {
-      firebase.auth().onAuthStateChanged((user) => {
+      firebase.auth().onAuthStateChanged(async (user) => {
         if (user && user.uid) {
           state.uid = user.uid;
           app.setAuthLocked(false);
-          loadProjectsMeta();
-          loadState();
+          try {
+            await loadProjectsMeta();
+            await loadState();
+          } catch {
+            // loadProjectsMeta/loadState already show toast on errors
+          }
           renderNav();
           renderBlocks();
           setView('reader');

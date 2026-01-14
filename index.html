@@ -216,9 +216,10 @@
       </div>
 
       <div class="help" aria-live="polite">
+        <p class="help-note"><strong>Speicherung:</strong> Alle Projekte, Sammlungen und Markierungen werden online in Firestore gespeichert (kein lokaler Browser-Speicher mehr).</p>
         <h2 class="help-h2">Seiten</h2>
         <ul class="help-list">
-          <li><strong>Projekte</strong>: Projekte anlegen, umbenennen, laden. Jedes Projekt hat eigene Sammlungen/Markierungen.</li>
+          <li><strong>Projekte</strong>: Projekte anlegen, umbenennen, löschen, laden. Jedes Projekt hat eigene Sammlungen/Markierungen.</li>
           <li><strong>Lesen</strong>: Durch Textblöcke blättern und Tools verwenden.</li>
           <li><strong>Neue Blocksammlung</strong>: Sammlung anlegen (Titel + mehrere Textblöcke).</li>
           <li><strong>Import/Export</strong>: Excel importieren/exportieren (immer nur im aktuellen Projekt).</li>
@@ -266,15 +267,14 @@
       <button id="menuToHelp" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18h.01"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"/><path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"/></svg></span><span class="drawer-text">Hilfe</span></button>
 <div class="drawer-sep" role="separator" aria-hidden="true"></div>
 
-      <button id="menuLoadSample" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.2 4.2L17 7l-3.8 1.1L12 12l-1.2-3.9L7 7l3.8-.8Z"/><path d="M19 12l.8 2.7L22 15l-2.2.7L19 18l-.8-2.3L16 15l2.2-.3Z"/><path d="M5 13l.8 2.7L8 16l-2.2.7L5 19l-.8-2.3L2 16l2.2-.3Z"/></svg></span><span class="drawer-text">Probedaten laden</span></button>
-      <button id="menuClearAll" class="drawer-item danger" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 16h10l1-16"/><path d="M9 11l6 6"/><path d="M15 11l-6 6"/></svg></span><span class="drawer-text">Alle Daten löschen</span></button>
-      <button id="menuLogout" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l-1 0a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1"/><path d="M15 12H7"/><path d="M15 12l-3-3"/><path d="M15 12l-3 3"/><path d="M17 7h4v10h-4"/></svg></span><span class="drawer-text">Logout</span></button>
+      <button id="menuLoadSample" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.2 4.2L17 7l-3.8 1.1L12 12l-1.2-3.9L7 7l3.8-.8Z"/><path d="M19 12l.8 2.7L22 15l-2.2.7L19 18l-.8-2.3L16 15l2.2-.3Z"/><path d="M5 13l.8 2.7L8 16l-2.2.7L5 19l-.8-2.3L2 16l2.2-.3Z"/></svg></span><span class="drawer-text">Probedaten laden</span></button>      <button id="menuLogout" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l-1 0a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1"/><path d="M15 12H7"/><path d="M15 12l-3-3"/><path d="M15 12l-3 3"/><path d="M17 7h4v10h-4"/></svg></span><span class="drawer-text">Logout</span></button>
 </div>
   </aside>
 
-  <!-- Firebase (Auth only) -->
+  <!-- Firebase (Auth + Firestore) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
   <!-- SheetJS (XLSX/CSV Import) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>

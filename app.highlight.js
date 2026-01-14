@@ -274,8 +274,9 @@
   }
 
   function getMarkersForCurrentCollection() {
-    const ci = state.currentIndex;
-    return (state.markers || []).filter(m => m.collectionIndex === ci);
+    const cid = app.getCurrentCollectionId?.();
+    if (!cid) return [];
+    return (state.markers || []).filter(m => m.collectionId === cid);
   }
 
   function getMarkerById(markerId) {
@@ -347,11 +348,11 @@
     const id = `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
     const text = extractTextForRange(blockIndex, s, e);
     const now = Date.now();
-    const mk = { id, collectionIndex: state.currentIndex, blockIndex, start: s, end: e, note: '', text, createdAt: now, updatedAt: now };
+    const mk = { id, collectionId: (app.getCurrentCollectionId?.() || ''), blockIndex, start: s, end: e, note: '', text, createdAt: now, updatedAt: now };
 
     state.markers = [mk, ...(state.markers || [])];
-    app.saveState?.();
-      applyAllMarkers();
+    app.persistMarkerUpsert?.(mk).catch(() => {});
+    applyAllMarkers();
       if (app.state?.activeView === 'notes') app.renderNotesView?.();
     // Immediately open note editor for the freshly created mark.
     openMarkerNoteEditor(mk.id);
@@ -364,8 +365,9 @@
     const before = (state.markers || []).length;
     state.markers = (state.markers || []).filter(m => m.id !== id);
     if (state.markers.length !== before) {
-      app.saveState?.();
+      app.persistMarkerDelete?.(id).catch(() => {});
       applyAllMarkers();
+      if (app.state?.activeView === 'notes') app.renderNotesView?.();
     }
   }
 
@@ -376,7 +378,9 @@
     if (!els.markerNoteBox || !els.markerNoteOverlay || !els.markerNoteText) return;
 
     els.markerNoteTitle.textContent = 'Notiz';
-    els.markerNoteSub.textContent = `Sammlung ${mk.collectionIndex + 1} · Block ${mk.blockIndex + 1} · „${(mk.text || '').slice(0, 120)}${(mk.text || '').length > 120 ? '…' : ''}“`;
+    const idx = app.getCollectionIndexById?.(mk.collectionId);
+    const colNo = (idx == null) ? '?' : (idx + 1);
+    els.markerNoteSub.textContent = `Sammlung ${colNo} · Block ${mk.blockIndex + 1} · „${(mk.text || '').slice(0, 120)}${(mk.text || '').length > 120 ? '…' : ''}“`;
 
     els.markerNoteText.value = mk.note || '';
     els.markerNoteBox.dataset.markerId = mk.id;
@@ -411,7 +415,7 @@
     state.markers = (state.markers || []).filter(m => m.id !== mk.id);
     state.markers = [mk, ...state.markers];
 
-    app.saveState?.();
+    app.persistMarkerUpsert?.(mk).catch(() => {});
     // If user is in notes overview, refresh immediately
     if (app.state?.activeView === 'notes') app.renderNotesView?.();
     closeMarkerNoteEditor();

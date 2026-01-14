@@ -899,6 +899,13 @@ select:focus-visible,
   padding: var(--pad);
 }
 
+.help-note{
+  margin: 0 0 12px 0;
+  color: var(--muted);
+}
+
+.help-note strong{ color: var(--text); }
+
 
 .drawer-item.primary .drawer-text{ opacity: 0.95; }
 .drawer-item.primary .drawer-icon{ opacity: 1; }

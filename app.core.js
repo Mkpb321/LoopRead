@@ -1,5 +1,5 @@
 /* LoopRead — single-page app (split into 4 files)
-   Part 1/4: core (state, DOM refs, storage, toast, confirm, helpers)
+   Part 1/4: core (state, DOM refs, Firestore persistence, toast, confirm, helpers)
 */
 
 (() => {
@@ -7,88 +7,94 @@
 
   const app = (window.LoopRead = window.LoopRead || {});
 
-  const STORAGE_KEY = 'loopread_v1_data';
-  const STORAGE_INDEX_KEY = 'loopread_v1_index';
-  const STORAGE_PROJECTS_KEY = 'loopread_v1_projects';
-  const STORAGE_ACTIVE_PROJECT_KEY = 'loopread_v1_active_project';
-
+  // --- DOM refs ---
   const els = {
     btnPrev: document.getElementById('btnPrev'),
     btnNext: document.getElementById('btnNext'),
-    navIndex: document.getElementById('navIndex'),
-    menuToHelp: document.getElementById('menuToHelp'),
     btnMenu: document.getElementById('btnMenu'),
 
-    btnHighlightTool: document.getElementById('btnHighlightTool'),
-    btnMarkerTool: document.getElementById('btnMarkerTool'),
-    btnClearHighlights: document.getElementById('btnClearHighlights'),
+    navIndex: document.getElementById('navIndex'),
 
-    viewLogin: document.getElementById('view-login'),
+    blocksContainer: document.getElementById('blocksContainer'),
+
     viewReader: document.getElementById('view-reader'),
     viewAdd: document.getElementById('view-add'),
     viewImport: document.getElementById('view-import'),
     viewDelete: document.getElementById('view-delete'),
     viewHide: document.getElementById('view-hide'),
+    viewLogin: document.getElementById('view-login'),
     viewProjects: document.getElementById('view-projects'),
     viewNotes: document.getElementById('view-notes'),
     viewHelp: document.getElementById('view-help'),
 
-    notesList: document.getElementById('notesList'),
-    btnNotesBack: document.getElementById('btnNotesBack'),
-    btnHelpBack: document.getElementById('btnHelpBack'),
+    editors: document.getElementById('editors'),
+    addForm: document.getElementById('addForm'),
+    btnSave: document.getElementById('btnSave'),
+    btnCancel: document.getElementById('btnCancel'),
+
+    importForm: document.getElementById('importForm'),
+    importFile: document.getElementById('importFile'),
+    importInfo: document.getElementById('importInfo'),
+    btnImport: document.getElementById('btnImport'),
+    btnImportCancel: document.getElementById('btnImportCancel'),
+    btnExport: document.getElementById('btnExport'),
+
+    deleteCollections: document.getElementById('deleteCollections'),
+    btnDeleteSave: document.getElementById('btnDeleteSave'),
+    btnDeleteCancel: document.getElementById('btnDeleteCancel'),
 
     hideBlocksList: document.getElementById('hideBlocksList'),
-
     btnHideSave: document.getElementById('btnHideSave'),
     btnHideCancel: document.getElementById('btnHideCancel'),
 
-    projectsList: document.getElementById('projectsList'),
+    notesList: document.getElementById('notesList'),
+    btnNotesBack: document.getElementById('btnNotesBack'),
+
+    btnHelpBack: document.getElementById('btnHelpBack'),
+
+    // Projects
     projectNewName: document.getElementById('projectNewName'),
     btnCreateProject: document.getElementById('btnCreateProject'),
+    projectsList: document.getElementById('projectsList'),
     btnProjectsBack: document.getElementById('btnProjectsBack'),
 
-    blocksContainer: document.getElementById('blocksContainer'),
-
-    deleteCollections: document.getElementById('deleteCollections'),
-
+    // Drawer
     menuOverlay: document.getElementById('menuOverlay'),
     menuDrawer: document.getElementById('menuDrawer'),
     drawerProjectName: document.getElementById('drawerProjectName'),
-    menuToProjects: document.getElementById('menuToProjects'),
+
     menuToReader: document.getElementById('menuToReader'),
     menuToAdd: document.getElementById('menuToAdd'),
     menuToImport: document.getElementById('menuToImport'),
     menuExport: document.getElementById('menuExport'),
     menuToDelete: document.getElementById('menuToDelete'),
     menuToHide: document.getElementById('menuToHide'),
+    menuToProjects: document.getElementById('menuToProjects'),
     menuToNotes: document.getElementById('menuToNotes'),
+    menuToHelp: document.getElementById('menuToHelp'),
+
     menuLoadSample: document.getElementById('menuLoadSample'),
+    // menuClearAll intentionally removed (no "Alle Daten löschen" anymore)
     menuClearAll: document.getElementById('menuClearAll'),
     menuLogout: document.getElementById('menuLogout'),
 
-    addForm: document.getElementById('addForm'),
-    editors: document.getElementById('editors'),
-    btnCancel: document.getElementById('btnCancel'),
+    btnHighlightTool: document.getElementById('btnHighlightTool'),
+    btnMarkerTool: document.getElementById('btnMarkerTool'),
+    btnClearHighlights: document.getElementById('btnClearHighlights'),
 
-    importForm: document.getElementById('importForm'),
-    importFile: document.getElementById('importFile'),
-    importInfo: document.getElementById('importInfo'),
-    btnExport: document.getElementById('btnExport'),
-    btnImportCancel: document.getElementById('btnImportCancel'),
-
-    btnDeleteSave: document.getElementById('btnDeleteSave'),
-    btnDeleteCancel: document.getElementById('btnDeleteCancel'),
-
+    // Toast
     toast: document.getElementById('toast'),
     toastMsg: document.getElementById('toastMsg'),
     toastClose: document.getElementById('toastClose'),
 
+    // Confirm
     confirmOverlay: document.getElementById('confirmOverlay'),
     confirmBox: document.getElementById('confirmBox'),
     confirmMsg: document.getElementById('confirmMsg'),
     confirmCancel: document.getElementById('confirmCancel'),
     confirmOk: document.getElementById('confirmOk'),
 
+    // Marker note editor (overlay)
     markerNoteOverlay: document.getElementById('markerNoteOverlay'),
     markerNoteBox: document.getElementById('markerNoteBox'),
     markerNoteTitle: document.getElementById('markerNoteTitle'),
@@ -98,30 +104,43 @@
     markerNoteDelete: document.getElementById('markerNoteDelete'),
     markerNoteCancel: document.getElementById('markerNoteCancel'),
 
+    // Login
     loginForm: document.getElementById('loginForm'),
     loginEmail: document.getElementById('loginEmail'),
     loginPassword: document.getElementById('loginPassword'),
     btnLogin: document.getElementById('btnLogin'),
   };
 
-  /** @type {{collections: Array<Array<{title:string, content:string}>>, hiddenBlocks:number[], currentIndex:number, menuOpen:boolean, uid:string|null, confirmOpen:boolean, activeView:string, highlightToolEnabled:boolean}} */
+  /** Global app state (in-memory). Collections content comes from Firestore. */
   const state = {
-    collections: [],
-    hiddenBlocks: [],
+    // Project-scoped data
+    collections: [],       // Array<Array<{title:string, content:string}>>
+    collectionIds: [],     // Array<string> aligned to collections[]
+    collectionIdToIndex: {},
+
+    hiddenBlocks: [],      // project-scoped, by block index (0-based)
     currentIndex: 0,
+
+    markers: [],           // project-scoped, stored in Firestore; each marker uses collectionId (stable)
+    pendingMarkerFocusId: null,
+
+    // UI state
     menuOpen: false,
     confirmOpen: false,
-    uid: null,
-    projects: [],
-    activeProjectId: null,
     activeView: 'reader',
     highlightToolEnabled: false,
     markerToolEnabled: false,
-    markers: [],
-    pendingMarkerFocusId: null,
+
+    // Auth / multi-project
+    uid: null,
+    projects: [],          // Array<{id:string, name:string}>
+    activeProjectId: null,
+
+    // Notes view UI state (set by views)
+    notesExpandedMarkerId: null,
   };
 
-  // --- Global hidden text blocks (by index; 0-based) ---
+  // --- Hidden blocks (project-global; by index) ---
   let hiddenBlocksSet = new Set();
 
   function normalizeHiddenBlocks(list) {
@@ -141,35 +160,6 @@
     return out;
   }
 
-  function normalizeMarkers(list) {
-    if (!Array.isArray(list)) return [];
-    const out = [];
-    const seen = new Set();
-    for (const mk of list) {
-      if (!mk || typeof mk !== 'object') continue;
-      const id = String(mk.id || '').trim();
-      if (!id || seen.has(id)) continue;
-      const collectionIndex = Math.trunc(Number(mk.collectionIndex));
-      const blockIndex = Math.trunc(Number(mk.blockIndex));
-      const start = Math.trunc(Number(mk.start));
-      const end = Math.trunc(Number(mk.end));
-      if (!Number.isFinite(collectionIndex) || !Number.isFinite(blockIndex) || !Number.isFinite(start) || !Number.isFinite(end)) continue;
-      if (collectionIndex < 0 || blockIndex < 0 || start < 0 || end < 0) continue;
-      const s = Math.min(start, end);
-      const e = Math.max(start, end);
-      const note = String(mk.note || '');
-      const text = String(mk.text || '');
-      const createdAt = Number(mk.createdAt) || Date.now();
-      const updatedAt = Number(mk.updatedAt) || createdAt;
-      seen.add(id);
-      out.push({ id, collectionIndex, blockIndex, start: s, end: e, note, text, createdAt, updatedAt });
-    }
-    // stable ordering: newest first
-    out.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-    return out;
-  }
-
-
   function setHiddenBlocks(list) {
     state.hiddenBlocks = normalizeHiddenBlocks(list);
     hiddenBlocksSet = new Set(state.hiddenBlocks);
@@ -179,7 +169,64 @@
     return hiddenBlocksSet.has(idx);
   }
 
-  // --- Toast (kein alert für Fehlermeldungen) ---
+  // --- Markers (project-scoped; stored in Firestore) ---
+  function normalizeMarkers(list) {
+    if (!Array.isArray(list)) return [];
+    const out = [];
+    const seen = new Set();
+    for (const mk of list) {
+      if (!mk || typeof mk !== 'object') continue;
+
+      const id = String(mk.id || '').trim();
+      if (!id || seen.has(id)) continue;
+
+      const collectionId = String(mk.collectionId || '').trim();
+      const blockIndex = Math.trunc(Number(mk.blockIndex));
+      const start = Math.trunc(Number(mk.start));
+      const end = Math.trunc(Number(mk.end));
+
+      if (!collectionId) continue;
+      if (!Number.isFinite(blockIndex) || !Number.isFinite(start) || !Number.isFinite(end)) continue;
+      if (blockIndex < 0 || start < 0 || end < 0) continue;
+
+      const s = Math.min(start, end);
+      const e = Math.max(start, end);
+
+      const note = String(mk.note || '');
+      const text = String(mk.text || '');
+      const createdAt = Number(mk.createdAt) || Date.now();
+      const updatedAt = Number(mk.updatedAt) || createdAt;
+
+      seen.add(id);
+      out.push({ id, collectionId, blockIndex, start: s, end: e, note, text, createdAt, updatedAt });
+    }
+    // stable ordering: newest first
+    out.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    return out;
+  }
+
+  // --- Collection id helpers ---
+  function rebuildCollectionIndexMap() {
+    const map = {};
+    for (let i = 0; i < (state.collectionIds || []).length; i++) {
+      const cid = state.collectionIds[i];
+      if (cid) map[cid] = i;
+    }
+    state.collectionIdToIndex = map;
+  }
+
+  function getCollectionIndexById(collectionId) {
+    const cid = String(collectionId || '').trim();
+    if (!cid) return null;
+    const idx = state.collectionIdToIndex?.[cid];
+    return Number.isFinite(idx) ? idx : null;
+  }
+
+  function getCurrentCollectionId() {
+    return state.collectionIds?.[state.currentIndex] || null;
+  }
+
+  // --- Toast ---
   let toastTimer = null;
 
   function hideToast() {
@@ -189,7 +236,6 @@
     if (els.toastMsg) {
       els.toastMsg.textContent = '';
     } else if (els.toast) {
-      // Fallback if markup was not upgraded for some reason
       els.toast.textContent = '';
     }
 
@@ -202,19 +248,17 @@
 
     if (els.toastMsg) {
       els.toastMsg.textContent = msg;
-    } else {
-      // Fallback if markup was not upgraded for some reason
+    } else if (els.toast) {
       els.toast.textContent = msg;
     }
 
-    els.toast.hidden = false;
+    if (els.toast) els.toast.hidden = false;
 
     if (toastTimer) window.clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(() => {
-      hideToast();
-    }, 3400);
+    toastTimer = window.setTimeout(() => hideToast(), 3400);
   }
 
+  // --- Formatting helpers ---
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, (ch) => {
       switch (ch) {
@@ -253,7 +297,7 @@
     return out;
   }
 
-  // In-App Confirm (statt window.confirm)
+  // --- In-app confirm modal ---
   let confirmResolver = null;
 
   function showConfirm(message, okText = 'OK', cancelText = 'Abbrechen') {
@@ -276,7 +320,6 @@
 
       // block background interactions
       document.body.style.overflow = 'hidden';
-
       els.confirmCancel.focus();
     });
   }
@@ -290,8 +333,8 @@
       els.confirmBox.setAttribute('aria-hidden', 'true');
     }
 
-    // restore scroll only if menu is not open
-    if (!state.menuOpen) if (!state.confirmOpen) document.body.style.overflow = '';
+    if (!state.menuOpen && !state.confirmOpen) document.body.style.overflow = '';
+
     const r = confirmResolver;
     confirmResolver = null;
     if (typeof r === 'function') r(!!result);
@@ -301,17 +344,95 @@
     try { return JSON.parse(jsonStr); } catch { return fallback; }
   }
 
-  function storageKey(baseKey, projectId = null) {
-    const uid = state.uid || 'anon';
-    if (projectId) return `${baseKey}_${uid}_${projectId}`;
-    return `${baseKey}_${uid}`;
-  }
 
+// --- Local UI persistence (per browser, per user, per project) ---
+// Stored locally by design:
+//   - activeProjectId
+//   - lastReadCollectionId (which collection the user is currently reading)
+//   - hiddenBlocks (block indices hidden in the UI)
+// This keeps device-specific reading progress/preferences out of Firestore.
 
-  function defaultProjectMeta() {
-    return { id: 'default', name: 'Standard' };
-  }
+const LS_PREFIX = 'loopread:loop-read:v1';
 
+function lsKey(...parts) {
+  return [LS_PREFIX, ...parts].join(':');
+}
+
+function safeLocalGet(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+function safeLocalSet(key, value) {
+  try { localStorage.setItem(key, value); } catch {}
+}
+
+function safeLocalRemove(key) {
+  try { localStorage.removeItem(key); } catch {}
+}
+
+function keyActiveProjectId() {
+  if (!state.uid) return null;
+  return lsKey('uid', state.uid, 'activeProjectId');
+}
+
+function keyHiddenBlocks(projectId) {
+  if (!state.uid) return null;
+  return lsKey('uid', state.uid, 'project', String(projectId), 'hiddenBlocks');
+}
+
+function keyLastReadCollectionId(projectId) {
+  if (!state.uid) return null;
+  return lsKey('uid', state.uid, 'project', String(projectId), 'lastReadCollectionId');
+}
+
+function loadLocalActiveProjectId() {
+  const k = keyActiveProjectId();
+  if (!k) return null;
+  const v = (safeLocalGet(k) || '').trim();
+  return v || null;
+}
+
+function persistLocalActiveProjectId(projectId) {
+  const k = keyActiveProjectId();
+  if (!k) return;
+  if (!projectId) safeLocalRemove(k);
+  else safeLocalSet(k, String(projectId));
+}
+
+function loadLocalHiddenBlocks(projectId) {
+  const k = keyHiddenBlocks(projectId);
+  if (!k) return [];
+  const parsed = safeParse(safeLocalGet(k), []);
+  return normalizeHiddenBlocks(parsed);
+}
+
+function persistLocalHiddenBlocks(projectId, list) {
+  const k = keyHiddenBlocks(projectId);
+  if (!k) return;
+  safeLocalSet(k, JSON.stringify(normalizeHiddenBlocks(list)));
+}
+
+function loadLocalLastReadCollectionId(projectId) {
+  const k = keyLastReadCollectionId(projectId);
+  if (!k) return null;
+  const v = (safeLocalGet(k) || '').trim();
+  return v || null;
+}
+
+function persistLocalLastReadCollectionId(projectId, collectionId) {
+  const k = keyLastReadCollectionId(projectId);
+  if (!k) return;
+  safeLocalSet(k, String(collectionId || ''));
+}
+
+function clearLocalProjectUiState(projectId) {
+  const k1 = keyHiddenBlocks(projectId);
+  const k2 = keyLastReadCollectionId(projectId);
+  if (k1) safeLocalRemove(k1);
+  if (k2) safeLocalRemove(k2);
+}
+
+  // --- Project helpers (in-memory) ---
   function normalizeProjects(list) {
     if (!Array.isArray(list)) return [];
     const out = [];
@@ -327,20 +448,19 @@
     return out;
   }
 
-  function getActiveProjectId() {
-    if (state.activeProjectId) return state.activeProjectId;
-    state.activeProjectId = defaultProjectMeta().id;
-    return state.activeProjectId;
-  }
-
   function getProjectById(projectId) {
     const pid = String(projectId || '').trim();
     if (!pid) return null;
     return (state.projects || []).find(p => p.id === pid) || null;
   }
 
+  function getActiveProjectId() {
+    return state.activeProjectId || (state.projects?.[0]?.id ?? null);
+  }
+
   function getActiveProject() {
-    return getProjectById(getActiveProjectId());
+    const pid = getActiveProjectId();
+    return pid ? getProjectById(pid) : null;
   }
 
   function updateProjectNameUI() {
@@ -350,151 +470,543 @@
     els.drawerProjectName.textContent = name;
   }
 
-  function saveProjectsMeta() {
-    localStorage.setItem(storageKey(STORAGE_PROJECTS_KEY), JSON.stringify({ projects: state.projects, activeProjectId: getActiveProjectId() }));
-    localStorage.setItem(storageKey(STORAGE_ACTIVE_PROJECT_KEY), String(getActiveProjectId()));
-    updateProjectNameUI();
+  // --- Firestore persistence layer ---
+  // Requirements:
+  //   - top-level collection: loop-read
+  //   - per user doc: loop-read/{uid}
+  //   - projects in: loop-read/{uid}/projects/{projectId}
+  //   - collections in: .../projects/{projectId}/collections/{collectionId}
+  //   - collection content stored in: .../projects/{projectId}/collections/{collectionId} (field: blocks[])
+  //   - markers in: .../projects/{projectId}/markers/{markerId}
+  //
+  // No "1 document pro Projekt" (1MB Risiko): Daten sind pro Sammlung dokumentiert.
+
+  function requireDb() {
+    if (!state.uid) throw new Error('Nicht angemeldet.');
+    if (!app.db || typeof app.db.collection !== 'function') throw new Error('Firestore ist nicht initialisiert.');
+    return app.db;
   }
 
-  function loadProjectsMeta() {
-    const raw = localStorage.getItem(storageKey(STORAGE_PROJECTS_KEY));
-    const activeRaw = localStorage.getItem(storageKey(STORAGE_ACTIVE_PROJECT_KEY));
-
-    if (raw) {
-      const parsed = safeParse(raw, null);
-      if (parsed && Array.isArray(parsed.projects)) state.projects = normalizeProjects(parsed.projects);
-      if (parsed && parsed.activeProjectId) state.activeProjectId = String(parsed.activeProjectId);
-    }
-
-    if (activeRaw) state.activeProjectId = String(activeRaw);
-
-    // If no projects exist, create a default project.
-    if (!Array.isArray(state.projects) || state.projects.length === 0) {
-      state.projects = [defaultProjectMeta()];
-    }
-
-    // Ensure active project exists.
-    if (!getProjectById(state.activeProjectId)) {
-      state.activeProjectId = state.projects[0].id;
-    }
-
-    // One-time migration from legacy (single-project) keys.
-    const legacyRaw = localStorage.getItem(storageKey(STORAGE_KEY));
-    const legacyIdx = localStorage.getItem(storageKey(STORAGE_INDEX_KEY));
-    const pid = getActiveProjectId();
-    const currentRaw = localStorage.getItem(storageKey(STORAGE_KEY, pid));
-    const currentIdx = localStorage.getItem(storageKey(STORAGE_INDEX_KEY, pid));
-
-    if (legacyRaw && !currentRaw) {
-      localStorage.setItem(storageKey(STORAGE_KEY, pid), legacyRaw);
-      localStorage.removeItem(storageKey(STORAGE_KEY));
-    }
-    if (legacyIdx !== null && currentIdx === null) {
-      localStorage.setItem(storageKey(STORAGE_INDEX_KEY, pid), legacyIdx);
-      localStorage.removeItem(storageKey(STORAGE_INDEX_KEY));
-    }
-
-    saveProjectsMeta();
+  function userDocRef() {
+    const db = requireDb();
+    return db.collection('loop-read').doc(state.uid);
   }
 
-  function setActiveProject(projectId) {
-    const pid = String(projectId || '').trim();
-    if (!pid) return;
-    if (!getProjectById(pid)) return;
-    state.activeProjectId = pid;
-    saveProjectsMeta();
+  function projectsColRef() {
+    return userDocRef().collection('projects');
   }
 
-  function createProject(name) {
+  function projectDocRef(projectId) {
+    return projectsColRef().doc(String(projectId));
+  }
+
+  function collectionsColRef(projectId) {
+    return projectDocRef(projectId).collection('collections');
+  }
+
+  function collectionDocRef(projectId, collectionId) {
+    return collectionsColRef(projectId).doc(String(collectionId));
+  }
+
+
+  function markersColRef(projectId) {
+    return projectDocRef(projectId).collection('markers');
+  }
+
+  async function ensureUserDoc() {
+    const now = Date.now();
+    await userDocRef().set({ updatedAt: now }, { merge: true });
+  }
+
+  async function persistUserMeta(partial) {
+    const now = Date.now();
+    await userDocRef().set({ ...(partial || {}), updatedAt: now }, { merge: true });
+  }
+
+  function genId(prefix) {
+    return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  async function setActiveProject(projectId) {
+  const pid = String(projectId || '').trim();
+  if (!pid) return;
+  if (!getProjectById(pid)) return;
+
+  state.activeProjectId = pid;
+  persistLocalActiveProjectId(pid);
+  updateProjectNameUI();
+}
+
+async function createProject(name) {
     const base = String(name || '').trim();
-    const safeName = base || `Projekt ${state.projects.length + 1}`;
-    const id = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-    state.projects.push({ id, name: safeName });
-    state.activeProjectId = id;
-    saveProjectsMeta();
+    const safeName = base || `Projekt ${Math.max(1, (state.projects || []).length + 1)}`;
+    const id = genId('p');
+    const now = Date.now();
 
-    // Initialize empty data for the new project.
-    state.collections = [];
-    setHiddenBlocks([]);
-    state.currentIndex = 0;
-    saveState();
+    try {
+      await ensureUserDoc();
+      await projectDocRef(id).set({
+        name: safeName,
+        createdAt: now,
+        updatedAt: now,
+      }, { merge: true });
 
-    return id;
+      state.projects = [...(state.projects || []), { id, name: safeName }];
+      state.activeProjectId = id;
+      persistLocalActiveProjectId(state.activeProjectId);
+      updateProjectNameUI();
+      persistLocalActiveProjectId(id);
+      clearLocalProjectUiState(id);
+
+      // Initialize in-memory project data
+      state.collections = [];
+      state.collectionIds = [];
+      rebuildCollectionIndexMap();
+      state.currentIndex = 0;
+      setHiddenBlocks([]);
+      state.markers = [];
+      return id;
+    } catch (e) {
+      showToast('Projekt konnte nicht erstellt werden.');
+      throw e;
+    }
   }
 
-  function renameProject(projectId, newName) {
+  async function renameProject(projectId, newName) {
     const pid = String(projectId || '').trim();
     const nn = String(newName || '').trim();
     const p = getProjectById(pid);
     if (!p) return false;
     if (!nn) return false;
-    p.name = nn;
-    saveProjectsMeta();
-    return true;
+
+    const now = Date.now();
+    try {
+      await projectDocRef(pid).set({ name: nn, updatedAt: now }, { merge: true });
+      p.name = nn;
+      persistLocalActiveProjectId(state.activeProjectId);
+      updateProjectNameUI();
+      return true;
+    } catch (e) {
+      showToast('Projektname konnte nicht gespeichert werden.');
+      return false;
+    }
   }
 
-  function clearAllUserData() {
-    const raw = localStorage.getItem(storageKey(STORAGE_PROJECTS_KEY));
-    const parsed = safeParse(raw, null);
-    const projects = normalizeProjects(parsed?.projects || state.projects);
+  async function listDocRefs(querySnap) {
+    return querySnap.docs.map(d => d.ref);
+  }
 
-    for (const p of projects) {
-      localStorage.removeItem(storageKey(STORAGE_KEY, p.id));
-      localStorage.removeItem(storageKey(STORAGE_INDEX_KEY, p.id));
+  async function commitBatchDeletes(docRefs) {
+    const db = requireDb();
+    const CHUNK = 450;
+    for (let i = 0; i < docRefs.length; i += CHUNK) {
+      const batch = db.batch();
+      for (const ref of docRefs.slice(i, i + CHUNK)) batch.delete(ref);
+      await batch.commit();
+    }
+  }
+
+  async function deleteCollectionDeep(projectId, collectionId) {
+  // Delete collection document.
+  await collectionDocRef(projectId, collectionId).delete();
+}
+
+  async function deleteMarkersForCollection(projectId, collectionId) {
+    const q = markersColRef(projectId).where('collectionId', '==', String(collectionId));
+    const snap = await q.get();
+    await commitBatchDeletes(await listDocRefs(snap));
+  }
+
+  async function deleteProjectDeep(projectId) {
+    const pid = String(projectId);
+
+    // Delete collections
+    const colsSnap = await collectionsColRef(pid).get();
+    for (const d of colsSnap.docs) {
+      await deleteCollectionDeep(pid, d.id);
     }
 
-    // Remove meta and any legacy keys.
-    localStorage.removeItem(storageKey(STORAGE_PROJECTS_KEY));
-    localStorage.removeItem(storageKey(STORAGE_ACTIVE_PROJECT_KEY));
-    localStorage.removeItem(storageKey(STORAGE_KEY));
-    localStorage.removeItem(storageKey(STORAGE_INDEX_KEY));
+    // Delete markers
+    const marksSnap = await markersColRef(pid).get();
+    await commitBatchDeletes(await listDocRefs(marksSnap));
 
-    // Reset to a fresh default project.
-    state.projects = [defaultProjectMeta()];
-    state.activeProjectId = state.projects[0].id;
-    state.collections = [];
+    // Delete project doc
+    await projectDocRef(pid).delete();
+  }
+
+async function deleteProject(projectId) {
+  const pid = String(projectId || '').trim();
+  if (!pid) return false;
+  if (!getProjectById(pid)) return false;
+
+  try {
+    await deleteProjectDeep(pid);
+
+    // Local, per-browser UI state for the deleted project
+    clearLocalProjectUiState(pid);
+
+    // Update in-memory list
+    state.projects = (state.projects || []).filter(p => p.id !== pid);
+
+    // If no projects left, create a new empty one
+    if (state.projects.length === 0) {
+      await createProject('Standard');
+      await loadState();
+      return true;
+    }
+
+    // Switch active project if needed
+    if (state.activeProjectId === pid) {
+      state.activeProjectId = state.projects[0].id;
+      persistLocalActiveProjectId(state.activeProjectId);
+      updateProjectNameUI();
+      await loadState();
+    }
+
+    return true;
+  } catch (e) {
+    showToast('Projekt konnte nicht gelöscht werden.');
+    return false;
+  }
+}
+
+  async function loadProjectsMeta() {
+    if (!state.uid) return;
+
+    try {
+      await ensureUserDoc();
+      // Active project is a device/browser preference (local only)
+      state.activeProjectId = loadLocalActiveProjectId();
+
+
+      // Load projects list
+      const projSnap = await projectsColRef().orderBy('createdAt', 'asc').get();
+      state.projects = projSnap.docs.map(d => {
+        const data = d.data() || {};
+        return { id: d.id, name: String(data.name || d.id) };
+      });
+
+      // Create initial project if empty
+      if (!Array.isArray(state.projects) || state.projects.length === 0) {
+        await createProject('Standard');
+        // createProject already updates activeProjectId and state.projects
+      }
+
+      // Validate active project
+      if (!state.activeProjectId || !getProjectById(state.activeProjectId)) {
+        state.activeProjectId = state.projects[0].id;
+        persistLocalActiveProjectId(state.activeProjectId);
+      }
+
+      persistLocalActiveProjectId(state.activeProjectId);
+      updateProjectNameUI();
+    } catch (e) {
+      showToast('Konnte Projekte nicht laden.');
+      throw e;
+    }
+  }
+
+  async function loadState() {
+    if (!state.uid) return;
+
+    // reset
     setHiddenBlocks([]);
+    state.collections = [];
+    state.collectionIds = [];
+    rebuildCollectionIndexMap();
     state.currentIndex = 0;
+    state.markers = [];
 
-    saveProjectsMeta();
+    const pid = getActiveProjectId();
+    if (!pid) return;
+
+    try {
+      // Project UI state is local-only (hidden blocks + last-read collection)
+
+      // collections + blocks
+      const colsSnap = await collectionsColRef(pid).orderBy('order', 'asc').get();
+
+      const collections = [];
+      const ids = [];
+
+      const loaded = await Promise.all(colsSnap.docs.map(async (cd) => {
+  const meta = cd.data() || {};
+  let blocks = [];
+
+  const raw = meta.blocks;
+  if (Array.isArray(raw) && raw.length > 0) {
+    blocks = raw.map(b => ({
+      title: String((b && b.title) || ''),
+      content: String((b && b.content) || ''),
+    }));
+  }
+
+  return { id: cd.id, blocks, meta };
+}));
+
+// Ensure stable order via meta.order
+
+loaded.sort((a, b) => (Number(a.meta.order) || 0) - (Number(b.meta.order) || 0));
+
+for (const it of loaded) {
+  ids.push(it.id);
+  collections.push(Array.isArray(it.blocks) ? it.blocks : []);
+}
+
+      state.collectionIds = ids;
+      state.collections = collections;
+      rebuildCollectionIndexMap();
+// Apply local-only UI state (per browser)
+setHiddenBlocks(loadLocalHiddenBlocks(pid));
+const lastCid = loadLocalLastReadCollectionId(pid);
+if (lastCid) {
+  const idx = getCollectionIndexById(lastCid);
+  if (idx != null) state.currentIndex = idx;
+}
+
+clampIndex();
+
+      // Initialize local-UI save baseline
+      lastSavedHiddenBlocksJson = JSON.stringify(state.hiddenBlocks || []);
+      lastSavedLastReadCid = getCurrentCollectionId() || null;
+
+      // markers
+      const marksSnap = await markersColRef(pid).orderBy('updatedAt', 'desc').get();
+      const marks = marksSnap.docs.map(d => ({ id: d.id, ...(d.data() || {}) }));
+      state.markers = normalizeMarkers(marks);
+
+      // Ensure tools are off on fresh load; highlight/marker decorations are view-driven
+      if (typeof app.clearHighlights === 'function') app.clearHighlights();
+      if (typeof app.setHighlightToolEnabled === 'function') app.setHighlightToolEnabled(false);
+      if (typeof app.setMarkerToolEnabled === 'function') app.setMarkerToolEnabled(false);
+    } catch (e) {
+      showToast('Konnte Projektdaten nicht laden.');
+      throw e;
+    }
+  }
+
+  // --- Save minimal UI state locally (no Firestore writes) ---
+let uiSaveTimer = null;
+let lastSavedHiddenBlocksJson = '';
+let lastSavedLastReadCid = null;
+
+function persistLocalUiStateNow() {
+  if (!state.uid) return;
+  const pid = getActiveProjectId();
+  if (!pid) return;
+
+  const hiddenJson = JSON.stringify(state.hiddenBlocks || []);
+  const lastReadCid = getCurrentCollectionId() || null;
+
+  persistLocalHiddenBlocks(pid, state.hiddenBlocks || []);
+  persistLocalLastReadCollectionId(pid, lastReadCid || '');
+
+  lastSavedHiddenBlocksJson = hiddenJson;
+  lastSavedLastReadCid = lastReadCid;
+}
+
+function saveState() {
+  if (!state.uid) return;
+
+  const pid = getActiveProjectId();
+  if (!pid) return;
+
+  const hiddenJson = JSON.stringify(state.hiddenBlocks || []);
+  const lastReadCid = getCurrentCollectionId() || null;
+
+  const hiddenChanged = hiddenJson !== lastSavedHiddenBlocksJson;
+  const lastReadChanged = lastReadCid !== (lastSavedLastReadCid || null);
+
+  if (!hiddenChanged && !lastReadChanged) return;
+
+  // Hidden blocks should be persisted immediately (still local).
+  if (hiddenChanged) {
+    if (uiSaveTimer) { clearTimeout(uiSaveTimer); uiSaveTimer = null; }
+    persistLocalUiStateNow();
+    return;
+  }
+
+  // lastRead changes can be frequent during navigation: debounce a bit.
+  if (uiSaveTimer) clearTimeout(uiSaveTimer);
+  uiSaveTimer = setTimeout(() => {
+    uiSaveTimer = null;
+    persistLocalUiStateNow();
+  }, 250);
+}
+
+  // --- Collection persistence helpers (content) ---
+  async function createCollection(blocks, order) {
+  const pid = getActiveProjectId();
+  if (!pid) throw new Error('Kein Projekt aktiv.');
+  const cid = genId('c');
+  const now = Date.now();
+
+  const items = Array.isArray(blocks) ? blocks : [];
+  const normalized = items.map(b => ({
+    title: String((b && b.title) || '').trim(),
+    content: String((b && b.content) || '').trim(),
+  }));
+
+  await collectionDocRef(pid, cid).set({
+    createdAt: now,
+    updatedAt: now,
+    order: Number.isFinite(order) ? Math.trunc(order) : 0,
+    blocks: normalized,
+  }, { merge: true });
+
+  return cid;
+}
+
+  async function reindexCollections() {
+    const pid = getActiveProjectId();
+    if (!pid) return;
+    const db = requireDb();
+
+    const CHUNK = 450;
+    const ids = state.collectionIds || [];
+
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const batch = db.batch();
+      for (let j = i; j < Math.min(ids.length, i + CHUNK); j++) {
+        const cid = ids[j];
+        batch.set(collectionDocRef(pid, cid), { order: j, updatedAt: Date.now() }, { merge: true });
+      }
+      await batch.commit();
+    }
+  }
+
+  async function appendCollections(collections) {
+    const list = Array.isArray(collections) ? collections : [];
+    if (list.length === 0) return;
+
+    const startOrder = state.collections.length;
+
+    for (let i = 0; i < list.length; i++) {
+      const blocks = list[i];
+      const cid = await createCollection(blocks, startOrder + i);
+      state.collections.push(Array.isArray(blocks) ? blocks : []);
+      state.collectionIds.push(cid);
+    }
+    rebuildCollectionIndexMap();
+    clampIndex();
     saveState();
   }
 
-  function loadState() {
-    setHiddenBlocks([]);
+  async function replaceCollections(collections) {
+    const pid = getActiveProjectId();
+    if (!pid) return;
+
+    // Delete all existing collections + blocks
+    const colsSnap = await collectionsColRef(pid).get();
+    for (const d of colsSnap.docs) {
+      await deleteCollectionDeep(pid, d.id);
+    }
+
+    // Clear markers (content changed)
+    const marksSnap = await markersColRef(pid).get();
+    await commitBatchDeletes(await listDocRefs(marksSnap));
+
+    // Reset in-memory
     state.collections = [];
+    state.collectionIds = [];
+    rebuildCollectionIndexMap();
     state.currentIndex = 0;
     state.markers = [];
+    state.notesExpandedMarkerId = null;
+
+    // Create new
+    await appendCollections(collections);
+
+    // Ensure lastRead points to first (or null)
+    saveState();
+  }
+
+  async function deleteCollectionsByIds(collectionIds) {
     const pid = getActiveProjectId();
-    const raw = localStorage.getItem(storageKey(STORAGE_KEY, pid));
-    const idxRaw = localStorage.getItem(storageKey(STORAGE_INDEX_KEY, pid));
+    if (!pid) return;
 
-    if (raw) {
-      const parsed = safeParse(raw, null);
-      if (parsed && Array.isArray(parsed.collections)) {
-        state.collections = parsed.collections;
-        if (Array.isArray(parsed.hiddenBlocks)) setHiddenBlocks(parsed.hiddenBlocks);
-        if (Array.isArray(parsed.markers)) state.markers = normalizeMarkers(parsed.markers);
-      } else if (parsed && Array.isArray(parsed.hiddenBlocks)) {
-        setHiddenBlocks(parsed.hiddenBlocks);
-        if (Array.isArray(parsed.markers)) state.markers = normalizeMarkers(parsed.markers);
-      }
-    }
+    const ids = (collectionIds || []).map(x => String(x)).filter(Boolean);
 
-    if (idxRaw !== null) {
-      const idx = Number(idxRaw);
-      if (Number.isFinite(idx)) state.currentIndex = idx;
+    for (const cid of ids) {
+      await deleteMarkersForCollection(pid, cid);
+      await deleteCollectionDeep(pid, cid);
     }
+  }
+
+  async function deleteCollectionsByIndices(indices) {
+    const marked = Array.isArray(indices) ? indices.map(i => Math.trunc(Number(i))).filter(i => Number.isFinite(i) && i >= 0) : [];
+    if (marked.length === 0) return;
+
+    // Convert to ids (stable)
+    const ids = marked.map(i => state.collectionIds?.[i]).filter(Boolean);
+
+    await deleteCollectionsByIds(ids);
+
+    // Update in-memory arrays
+    const markedSet = new Set(marked);
+    state.collections = (state.collections || []).filter((_, idx) => !markedSet.has(idx));
+    state.collectionIds = (state.collectionIds || []).filter((_, idx) => !markedSet.has(idx));
+    rebuildCollectionIndexMap();
+
+    // Remove local markers for deleted collections
+    const idsSet = new Set(ids);
+    state.markers = (state.markers || []).filter(m => !idsSet.has(m.collectionId));
 
     clampIndex();
+
+    // Reindex order fields
+    await reindexCollections();
+
+    // Persist last read
+    saveState();
   }
 
-  function saveState() {
+  // --- Marker persistence helpers ---
+  async function persistMarkerUpsert(marker) {
     const pid = getActiveProjectId();
-    localStorage.setItem(storageKey(STORAGE_KEY, pid), JSON.stringify({ collections: state.collections, hiddenBlocks: state.hiddenBlocks, markers: state.markers }));
-    localStorage.setItem(storageKey(STORAGE_INDEX_KEY, pid), String(state.currentIndex));
+    if (!pid) return;
+
+    const mk = marker || {};
+    const id = String(mk.id || '').trim();
+    const cid = String(mk.collectionId || '').trim();
+
+    if (!id || !cid) return;
+
+    const data = {
+      collectionId: cid,
+      blockIndex: Math.trunc(Number(mk.blockIndex)),
+      start: Math.trunc(Number(mk.start)),
+      end: Math.trunc(Number(mk.end)),
+      note: String(mk.note || ''),
+      text: String(mk.text || ''),
+      createdAt: Number(mk.createdAt) || Date.now(),
+      updatedAt: Number(mk.updatedAt) || Date.now(),
+    };
+
+    try {
+      await markersColRef(pid).doc(id).set(data, { merge: true });
+    } catch (e) {
+      showToast('Konnte Markierung nicht speichern.');
+      throw e;
+    }
   }
 
+  async function persistMarkerDelete(markerId) {
+    const pid = getActiveProjectId();
+    if (!pid) return;
+
+    const id = String(markerId || '').trim();
+    if (!id) return;
+
+    try {
+      await markersColRef(pid).doc(id).delete();
+    } catch (e) {
+      showToast('Konnte Markierung nicht löschen.');
+      throw e;
+    }
+  }
+
+  // --- Misc ---
   function clampIndex() {
     const n = state.collections.length;
     if (n === 0) { state.currentIndex = 0; return; }
@@ -513,15 +1025,21 @@
       els.viewDelete.classList.remove('view-active');
       els.viewHide.classList.remove('view-active');
       els.viewProjects?.classList.remove('view-active');
+      els.viewNotes?.classList.remove('view-active');
+      els.viewHelp?.classList.remove('view-active');
     }
   }
 
   function resetInMemoryState() {
     state.collections = [];
+    state.collectionIds = [];
+    rebuildCollectionIndexMap();
     state.currentIndex = 0;
     state.markers = [];
+    state.pendingMarkerFocusId = null;
+    state.notesExpandedMarkerId = null;
     setHiddenBlocks([]);
-    // cross-file functions live on app
+
     if (typeof app.clearHighlights === 'function') app.clearHighlights();
     if (typeof app.setHighlightToolEnabled === 'function') app.setHighlightToolEnabled(false);
     if (typeof app.setMarkerToolEnabled === 'function') app.setMarkerToolEnabled(false);
@@ -531,18 +1049,20 @@
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
-  // Expose core to app namespace
-  app.STORAGE_KEY = STORAGE_KEY;
-  app.STORAGE_INDEX_KEY = STORAGE_INDEX_KEY;
-  app.STORAGE_PROJECTS_KEY = STORAGE_PROJECTS_KEY;
-  app.STORAGE_ACTIVE_PROJECT_KEY = STORAGE_ACTIVE_PROJECT_KEY;
-
+  // --- Expose ---
   app.els = els;
   app.state = state;
+
+  app.safeParse = safeParse;
 
   app.normalizeHiddenBlocks = normalizeHiddenBlocks;
   app.setHiddenBlocks = setHiddenBlocks;
   app.isBlockHidden = isBlockHidden;
+
+  app.normalizeMarkers = normalizeMarkers;
+  app.getCurrentCollectionId = getCurrentCollectionId;
+  app.getCollectionIndexById = getCollectionIndexById;
+  app.rebuildCollectionIndexMap = rebuildCollectionIndexMap;
 
   app.hideToast = hideToast;
   app.showToast = showToast;
@@ -553,21 +1073,26 @@
   app.showConfirm = showConfirm;
   app.closeConfirm = closeConfirm;
 
-  app.safeParse = safeParse;
-  app.storageKey = storageKey;
   app.loadProjectsMeta = loadProjectsMeta;
-  app.saveProjectsMeta = saveProjectsMeta;
+  app.getProjectById = getProjectById;
   app.getActiveProjectId = getActiveProjectId;
   app.getActiveProject = getActiveProject;
   app.setActiveProject = setActiveProject;
   app.createProject = createProject;
   app.renameProject = renameProject;
+  app.deleteProject = deleteProject;
   app.updateProjectNameUI = updateProjectNameUI;
-  app.clearAllUserData = clearAllUserData;
 
   app.loadState = loadState;
   app.saveState = saveState;
   app.clampIndex = clampIndex;
+
+  app.appendCollections = appendCollections;
+  app.replaceCollections = replaceCollections;
+  app.deleteCollectionsByIndices = deleteCollectionsByIndices;
+
+  app.persistMarkerUpsert = persistMarkerUpsert;
+  app.persistMarkerDelete = persistMarkerDelete;
 
   app.setAuthLocked = setAuthLocked;
   app.resetInMemoryState = resetInMemoryState;

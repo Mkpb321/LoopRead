@@ -625,6 +625,10 @@ Dabei werden Sammlungen und Markierungen endgültig entfernt.`, 'Löschen', 'Abb
     scrollTop();
   }
 
+  // --- Delete collections (draft; applied on save) ---
+  /** @type {{ marked:Set<number> } | null} */
+  let deleteDraft = null;
+
   function resetDeleteDraft() {
     deleteDraft = { marked: new Set() };
     updateDeleteActions();

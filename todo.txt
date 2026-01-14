@@ -23,21 +23,6 @@ Ich möchte, dass du die nachfolgend beschriebenen Änderungen am bestehenden Co
 Änderungen:
 
 
+mach das schema als oberstes eine sammlung namens loop-read und darin de userids, weil mein firebase für mehrere projekte nutze
 
-
-
-ok nun grosse änderung. statt das es in dem lokalen browser gespeichert wird, speichert die app es neu im firestore. 
-
-  apiKey: "AIzaSyBdyurJosE1H9iG6Inde7ptCb-aRBl6Hks",
-  authDomain: "my-hobby-apps.firebaseapp.com",
-  projectId: "my-hobby-apps",
-  storageBucket: "my-hobby-apps.firebasestorage.app",
-  messagingSenderId: "894079667150",
-  appId: "1:894079667150:web:f4d910cbd4512be17ef99f"
-
-speicherformat ungefähr so:
-user->projekt->sammlung-> (aber genau wie das schema sein soll weiss ich noch nicht) 
-es sollen die texte und aber auch die markierungen und notizen gespeichert werden, aber das highliten nicht das ist ja eh wegg wenn man seite neu läht
-import speicherts dann auch im firestore (logischerweise)
-wenn ich den neuen code eingebe gehen bestehende daten halt verlohren die imbrowser sind das ist nicht schlimm. darum musst du dich nicht kümmern
-implementier noch nichts sondern stelle mir verständnissfragen, bis die umsetzung geklährt ist und setze dann um.
+prüfe nochmal alles auf probleme und bugs. ist alles richtig verknüpft? werden daten richtig gelöscht? wird beim import alles richtig verknüpft bis in die firestore

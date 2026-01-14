@@ -972,15 +972,25 @@ function saveState() {
 
     if (!id || !cid) return;
 
+    const bi = Math.trunc(Number(mk.blockIndex));
+    const st = Math.trunc(Number(mk.start));
+    const en = Math.trunc(Number(mk.end));
+
+    // Guard against invalid marker payloads (Firestore rejects NaN/Infinity)
+    if (!Number.isFinite(bi) || !Number.isFinite(st) || !Number.isFinite(en)) {
+      showToast('Ungültige Markierung.');
+      return;
+    }
+
     const data = {
       collectionId: cid,
-      blockIndex: Math.trunc(Number(mk.blockIndex)),
-      start: Math.trunc(Number(mk.start)),
-      end: Math.trunc(Number(mk.end)),
+      blockIndex: bi,
+      start: st,
+      end: en,
       note: String(mk.note || ''),
       text: String(mk.text || ''),
       createdAt: Number(mk.createdAt) || Date.now(),
-      updatedAt: Number(mk.updatedAt) || Date.now(),
+      updatedAt: Date.now(),
     };
 
     try {

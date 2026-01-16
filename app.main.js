@@ -527,7 +527,23 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
         if (state.confirmOpen) { closeConfirm(false); return; }
         if (!els.menuOverlay.hidden) closeMenu();
       }
-      if (els.viewReader.classList.contains('view-active') && !state.menuOpen) {
+
+      const inReader = els.viewReader.classList.contains('view-active');
+      const noteOpen = !!(els.markerNoteBox && els.markerNoteBox.classList && els.markerNoteBox.classList.contains('open'));
+
+      // Keyboard shortcuts only in reader view and only when no modal is open.
+      if (inReader && !state.menuOpen && !state.confirmOpen && !noteOpen) {
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
+          if (String(e.key || '').toLowerCase() === 'h') {
+            toggleHighlightTool();
+            e.preventDefault();
+            return;
+          }
+        }
+      }
+
+      // Reader navigation (disabled while marker note dialog is open)
+      if (inReader && !state.menuOpen && !noteOpen) {
         if (e.key === 'ArrowRight') gotoNext();
         if (e.key === 'ArrowLeft') gotoPrev();
       }

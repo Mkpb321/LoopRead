@@ -157,7 +157,6 @@ body.tool-marker-active .word-token{
 
 .marker-token{
   color: #c00;
-  font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
 }

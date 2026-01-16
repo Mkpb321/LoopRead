@@ -377,7 +377,7 @@
 
     if (!els.markerNoteBox || !els.markerNoteOverlay || !els.markerNoteText) return;
 
-    els.markerNoteTitle.textContent = 'Notiz';
+    els.markerNoteTitle.textContent = 'Markierung';
     const idx = app.getCollectionIndexById?.(mk.collectionId);
     const colNo = (idx == null) ? '?' : (idx + 1);
     els.markerNoteSub.textContent = `Sammlung ${colNo} · Block ${mk.blockIndex + 1} · „${(mk.text || '').slice(0, 120)}${(mk.text || '').length > 120 ? '…' : ''}“`;

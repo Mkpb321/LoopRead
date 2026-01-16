@@ -29,8 +29,15 @@
     // Slight staggering improves distinguishability of neighboring selections.
     const lightnessCycle = [86, 80, 74, 90, 78];
     const saturationCycle = [88, 84, 90, 82, 86];
-    const l = lightnessCycle[idx % lightnessCycle.length];
-    const s = saturationCycle[idx % saturationCycle.length];
+    let l = lightnessCycle[idx % lightnessCycle.length];
+    let s = saturationCycle[idx % saturationCycle.length];
+
+    // Avoid very light yellow highlights: they are hard to distinguish from the app background.
+    // Yellow-ish hues are roughly 45°–85° in HSL.
+    if (h >= 45 && h <= 85 && l > 70) {
+      l = 62;
+      s = Math.max(s, 92);
+    }
 
     return `hsl(${h.toFixed(1)}, ${s}%, ${l}%)`;
   }

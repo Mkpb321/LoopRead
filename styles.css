@@ -138,7 +138,8 @@ body.tool-highlight-active .word-token{
 }
 
 mark.word-token{
-  background: var(--hl-color, #ffeb3b);
+  /* fallback color should be clearly visible against the app background */
+  background: var(--hl-color, #ffc107);
   color: inherit;
   padding: 0;
   border-radius: 0;

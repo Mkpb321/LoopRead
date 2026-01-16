@@ -24,6 +24,8 @@ Ich möchte, dass du die nachfolgend beschriebenen Änderungen am bestehenden Co
 
 drag and drop für import
 
+der notizimput bei markierungen hat komische logik, weil der cod so ist als hätt ich die notiz erstellt und dann gleich geöffnet. z.b. löscht abbrechen nur die notiz aber nicht die neue markierung was man erwarten würde.
+
 Änderungen:
 
 

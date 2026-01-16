@@ -534,8 +534,25 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
       // Keyboard shortcuts only in reader view and only when no modal is open.
       if (inReader && !state.menuOpen && !state.confirmOpen && !noteOpen) {
         if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
-          if (String(e.key || '').toLowerCase() === 'h') {
+          const k = String(e.key || '').toLowerCase();
+
+          // h = toggle highlight tool
+          if (k === 'h') {
             toggleHighlightTool();
+            e.preventDefault();
+            return;
+          }
+
+          // m = toggle marker tool
+          if (k === 'm') {
+            toggleMarkerTool();
+            e.preventDefault();
+            return;
+          }
+
+          // Del = same as "X" button (clear highlights)
+          if (e.key === 'Delete') {
+            clearHighlights();
             e.preventDefault();
             return;
           }

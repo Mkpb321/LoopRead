@@ -525,7 +525,7 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         if (state.confirmOpen) { closeConfirm(false); return; }
-        if (!els.menuOverlay.hidden) closeMenu();
+        if (!els.menuOverlay.hidden) { closeMenu(); return; }
       }
 
       const inReader = els.viewReader.classList.contains('view-active');
@@ -535,6 +535,15 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
       if (inReader && !state.menuOpen && !state.confirmOpen && !noteOpen) {
         if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
           const k = String(e.key || '').toLowerCase();
+
+          // Esc = disable all tools (highlight + marker)
+          if (k === 'escape') {
+            // Tool APIs live in app.highlight.js
+            setHighlightToolEnabled(false);
+            if (typeof app.setMarkerToolEnabled === 'function') app.setMarkerToolEnabled(false);
+            e.preventDefault();
+            return;
+          }
 
           // h = toggle highlight tool
           if (k === 'h') {

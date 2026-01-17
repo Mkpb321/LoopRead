@@ -11,6 +11,11 @@
   <link rel="manifest" href="./icon/site.webmanifest" />
   <link rel="icon" type="image/x-icon" href="./icon/favicon.ico" />
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- PDF Fonts (Unicode: Greek/Hebrew/Accents) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;600&family=Noto+Serif:wght@400;700&display=swap" rel="stylesheet" />
 </head>
 <body>
   <header class="topbar" role="banner">
@@ -271,7 +276,7 @@
               <div class="help-item"><span class="help-pill">Neu</span><div>Neue Blocksammlung erstellen.</div></div>
               <div class="help-item"><span class="help-pill">Import</span><div>Excel importieren.</div></div>
               <div class="help-item"><span class="help-pill">Export</span><div>Aktuelles Projekt als Excel exportieren.</div></div>
-              <div class="help-item"><span class="help-pill">Export PDF</span><div>Aktuelles Projekt als PDF exportieren (1 Seite pro Sammlung).</div></div>
+              <div class="help-item"><span class="help-pill">Export PDF</span><div>Aktuelles Projekt als PDF exportieren (Titelseite + 1 Seite pro Sammlung).</div></div>
               <div class="help-item"><span class="help-pill">Ausblenden</span><div>Textblöcke ausblenden/einblenden (lokal).</div></div>
               <div class="help-item"><span class="help-pill">Löschen</span><div>Sammlungen löschen (Mehrfachauswahl).</div></div>
               <div class="help-item"><span class="help-pill">Hilfe</span><div>Diese Hilfeseite.</div></div>
@@ -317,6 +322,9 @@
 
   <!-- SheetJS (XLSX/CSV Import) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- html2canvas (PDF rasterization for full Unicode text) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <!-- jsPDF (PDF Export) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>

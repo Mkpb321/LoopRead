@@ -389,10 +389,11 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
     return raw.replace(/[^a-zA-Z0-9\u00C0-\u017F._-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'projekt';
   }
 
-  function exportCurrentProjectAsPdf() {
+  async function exportCurrentProjectAsPdf() {
     const jsPDF = window.jspdf?.jsPDF;
-    if (!jsPDF) {
-      showToast('PDF-Bibliothek (jsPDF) nicht geladen.');
+    const html2canvas = window.html2canvas;
+    if (!jsPDF || !html2canvas) {
+      showToast('PDF-Export-Bibliotheken nicht geladen.');
       return;
     }
 
@@ -406,139 +407,203 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
       return;
     }
 
+    // NOTE: Für Griechisch/Hebräisch/Unicode ist jsPDF-Textausgabe mit Standard-Fonts
+    // nicht ausreichend. Wir rendern pro Seite HTML (mit Unicode-Webfonts) und
+    // rasterisieren via html2canvas in die PDF. So bleiben Schriftzeichen korrekt.
+
+    showToast('PDF wird erstellt …');
+
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWpt = doc.internal.pageSize.getWidth();
+    const pageHpt = doc.internal.pageSize.getHeight();
 
-    const margin = { l: 56, t: 56, r: 56, b: 56 };
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const maxW = pageW - margin.l - margin.r;
-    const availH = pageH - margin.t - margin.b;
+    // A4 in CSS-Pixel (bei 96dpi): 595pt -> ~794px
+    const PT_TO_PX = 96 / 72;
+    const pageWpx = Math.round(pageWpt * PT_TO_PX);
+    const pageHpx = Math.round(pageHpt * PT_TO_PX);
 
-    const blockGap = 18;
+    const paddingPt = 56;
+    const paddingPx = Math.round(paddingPt * PT_TO_PX);
 
-    const otherLH = 1.15;
-    const firstLH = 1.4;
+    const normalizeText = (t) => String(t ?? '').replace(/\r\n/g, '\n');
 
     // Titelseite: nutze die Block-Titel der allerersten Sammlung als "Blockinhalt".
     const titlePageBlocks = (Array.isArray(state.collections[0]) ? state.collections[0] : [])
       .map(b => String(b?.title ?? '').trim())
-      .filter(t => t.length > 0);
+      .filter(t => t.length > 0)
+      .map(t => normalizeText(t));
 
-    const normalizeText = (t) => String(t ?? '').replace(/\r\n/g, '\n');
-
-    function splitTextRespectingNewlines(text, width) {
-      const out = [];
-      const parts = normalizeText(text).split('\n');
-      for (let i = 0; i < parts.length; i++) {
-        const p = parts[i];
-        if (!p) {
-          out.push('');
-          continue;
-        }
-        const wrapped = doc.splitTextToSize(p, width);
-        for (const line of wrapped) out.push(String(line));
-      }
-      return out;
-    }
-
-    function measureTextHeight(text, width, fontSize, lineHeightFactor) {
-      doc.setFontSize(fontSize);
-      const lines = splitTextRespectingNewlines(text, width);
-      const lineH = fontSize * lineHeightFactor;
-      return lines.length * lineH;
-    }
-
-    function drawText(text, x, y, width, fontSize, lineHeightFactor) {
-      doc.setFontSize(fontSize);
-      const lines = splitTextRespectingNewlines(text, width);
-      const lineH = fontSize * lineHeightFactor;
-      for (const line of lines) {
-        // jsPDF expects non-empty strings; keep blank lines as ' '
-        doc.text(line || ' ', x, y);
-        y += lineH;
-      }
-      return y;
-    }
-
-    function ensureHelvetica() {
-      try { doc.setFont('helvetica', 'normal'); } catch (_) { /* ignore */ }
-    }
-
-    ensureHelvetica();
-
-    function renderSinglePage(contents) {
-      const n = contents.length;
-      let otherFs = 20;
-
-      const minFirstFs = 12;
-      const maxFirstFs = 46;
-
-      const minFirstH = measureTextHeight(contents[0] || '', maxW, minFirstFs, firstLH);
-      const restHeightAt20 = (function () {
-        let h = 0;
-        for (let i = 1; i < n; i++) {
-          h += measureTextHeight(contents[i] || '', maxW, otherFs, otherLH);
-          if (i < n - 1) h += blockGap;
-        }
-        return h;
-      })();
-
-      // If the non-first blocks alone would overflow, scale them down as a last-resort.
-      if (n > 1 && (restHeightAt20 + blockGap + minFirstH) > availH) {
-        const room = Math.max(1, availH - minFirstH - blockGap);
-        const scale = room / Math.max(1, restHeightAt20);
-        otherFs = Math.max(12, Math.floor(20 * scale));
-      }
-
-      const totalHeightForFirstFs = (fs) => {
-        let h = 0;
-        for (let i = 0; i < n; i++) {
-          const isFirst = (i === 0);
-          const useFs = isFirst ? fs : otherFs;
-          const useLH = isFirst ? firstLH : otherLH;
-          h += measureTextHeight(contents[i] || '', maxW, useFs, useLH);
-          if (i < n - 1) h += blockGap;
-        }
-        return h;
-      };
-
-      let firstFs = minFirstFs;
-      for (let fs = maxFirstFs; fs >= minFirstFs; fs--) {
-        if (totalHeightForFirstFs(fs) <= availH) {
-          firstFs = fs;
-          break;
-        }
-      }
-
-      let y = margin.t;
-      for (let i = 0; i < n; i++) {
-        const isFirst = (i === 0);
-        const useFs = isFirst ? firstFs : otherFs;
-        const useLH = isFirst ? firstLH : otherLH;
-        y = drawText(contents[i] || '', margin.l, y, maxW, useFs, useLH);
-        if (i < n - 1) y += blockGap;
-      }
-    }
-
-    // Export-Reihenfolge:
-    // 1) Zusätzliche Titelseite (nur Titel als "Blockinhalt")
-    // 2) Danach: eine Seite pro Sammlung (ohne Titel)
-    // jsPDF erstellt initial Seite 1. Wir nutzen diese initiale Seite sinnvoll,
-    // statt nachträglich Seiten löschen zu müssen.
-
-    let pageUsed = false;
-
+    const pages = [];
     if (titlePageBlocks.length > 0) {
-      renderSinglePage(titlePageBlocks.map(t => normalizeText(t)));
-      pageUsed = true;
+      pages.push({ kind: 'title', blocks: titlePageBlocks });
     }
-
     for (let ci = 0; ci < state.collections.length; ci++) {
-      if (pageUsed) doc.addPage();
       const blocks = Array.isArray(state.collections[ci]) ? state.collections[ci] : [];
       const contents = blocks.map(b => normalizeText(b?.content ?? '').trim());
-      renderSinglePage(contents);
-      pageUsed = true;
+      pages.push({ kind: 'collection', blocks: contents });
+    }
+
+    const root = document.createElement('div');
+    root.id = 'pdfRenderRoot';
+    root.setAttribute('aria-hidden', 'true');
+    Object.assign(root.style, {
+      position: 'fixed',
+      left: '-10000px',
+      top: '0',
+      width: `${pageWpx}px`,
+      height: 'auto',
+      zIndex: '-1',
+      pointerEvents: 'none'
+    });
+
+    const style = document.createElement('style');
+    style.textContent = `
+      #pdfRenderRoot .pdf-page {
+        width: ${pageWpx}px;
+        height: ${pageHpx}px;
+        box-sizing: border-box;
+        padding: ${paddingPx}px;
+        background: #ffffff;
+        color: #111111;
+        border-radius: 0;
+      }
+
+      #pdfRenderRoot .pdf-content {
+        width: 100%;
+        height: ${pageHpx - paddingPx * 2}px;
+        box-sizing: border-box;
+        overflow: hidden;
+        font-family: "Noto Serif", "Noto Sans Hebrew", "Noto Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        font-variant-ligatures: none;
+      }
+
+      #pdfRenderRoot .pdf-block {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        hyphens: auto;
+        margin: 0 0 18px 0;
+        text-align: start;
+        direction: auto;
+        unicode-bidi: plaintext;
+      }
+
+      #pdfRenderRoot .pdf-block:last-child { margin-bottom: 0; }
+
+      #pdfRenderRoot .pdf-block-first {
+        font-size: var(--pdf-first-fs, 24px);
+        line-height: 1.4;
+      }
+
+      #pdfRenderRoot .pdf-block-other {
+        font-size: var(--pdf-other-fs, 20px);
+        line-height: 1.15;
+      }
+    `;
+
+    root.appendChild(style);
+    document.body.appendChild(root);
+
+    // Ensure webfonts are loaded before rendering (but don't block forever).
+    try {
+      if (document.fonts && document.fonts.ready) {
+        await Promise.race([
+          document.fonts.ready,
+          new Promise(r => setTimeout(r, 2500))
+        ]);
+      }
+    } catch (_) {
+      // ignore
+    }
+
+    const makePageDom = (blockTexts) => {
+      const page = document.createElement('div');
+      page.className = 'pdf-page';
+      const content = document.createElement('div');
+      content.className = 'pdf-content';
+      page.appendChild(content);
+
+      const texts = Array.isArray(blockTexts) ? blockTexts : [];
+      for (let i = 0; i < texts.length; i++) {
+        const b = document.createElement('div');
+        b.className = 'pdf-block ' + (i === 0 ? 'pdf-block-first' : 'pdf-block-other');
+        b.textContent = texts[i] ?? '';
+        content.appendChild(b);
+      }
+
+      // Defaults
+      page.style.setProperty('--pdf-other-fs', '20px');
+      page.style.setProperty('--pdf-first-fs', '24px');
+      return page;
+    };
+
+    const forceReflow = (el) => {
+      // eslint-disable-next-line no-unused-expressions
+      el.offsetHeight;
+    };
+
+    const fitFontsToSinglePage = (pageEl) => {
+      const content = pageEl.querySelector('.pdf-content');
+      if (!content) return;
+      const blocks = Array.from(pageEl.querySelectorAll('.pdf-block'));
+      if (blocks.length === 0) return;
+
+      const MIN_FIRST = 12;
+      const MAX_FIRST = 46;
+      const MIN_OTHER = 12;
+      const MAX_OTHER = 20;
+
+      const fits = () => (content.scrollHeight <= content.clientHeight + 1);
+
+      for (let other = MAX_OTHER; other >= MIN_OTHER; other--) {
+        pageEl.style.setProperty('--pdf-other-fs', `${other}px`);
+        // Binary-search best possible first font size.
+        let lo = MIN_FIRST;
+        let hi = MAX_FIRST;
+        let best = MIN_FIRST;
+        while (lo <= hi) {
+          const mid = Math.floor((lo + hi) / 2);
+          pageEl.style.setProperty('--pdf-first-fs', `${mid}px`);
+          forceReflow(content);
+          if (fits()) {
+            best = mid;
+            lo = mid + 1;
+          } else {
+            hi = mid - 1;
+          }
+        }
+
+        pageEl.style.setProperty('--pdf-first-fs', `${best}px`);
+        forceReflow(content);
+        if (fits()) return;
+      }
+    };
+
+    try {
+      for (let i = 0; i < pages.length; i++) {
+        const model = pages[i];
+        const pageEl = makePageDom(model.blocks);
+        root.appendChild(pageEl);
+
+        // Fit content so it never overflows the page.
+        fitFontsToSinglePage(pageEl);
+
+        const canvas = await html2canvas(pageEl, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        if (i > 0) doc.addPage();
+        doc.addImage(imgData, 'PNG', 0, 0, pageWpt, pageHpt);
+
+        root.removeChild(pageEl);
+        // yield to keep UI responsive for larger projects
+        await new Promise(r => setTimeout(r, 0));
+      }
+    } finally {
+      document.body.removeChild(root);
     }
 
     const filename = `loopread_${sanitizeFilenamePart(project.name)}_${formatLocalTimestampForFilename()}.pdf`;

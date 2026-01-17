@@ -537,7 +537,7 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWpt = doc.internal.pageSize.getWidth();
     const pageHpt = doc.internal.pageSize.getHeight();
-    const paddingPt = 56;
+    const paddingPt = 62;
     const contentW = pageWpt - paddingPt * 2;
     const contentH = pageHpt - paddingPt * 2;
 
@@ -565,13 +565,15 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
       pages.push({ blocks: contents });
     }
 
-    const OTHER_FS = 20;
+    // Blocks 2..n should be half the previous size (was 20).
+    const OTHER_FS = 15;
     const OTHER_LH = 1.12;
-    const FIRST_LH = 1.35;
+    const FIRST_LH = 1.7;
     const GAP = 26; // bigger gap between blocks
     const FIRST_MIN = 10;
     const FIRST_MAX = 52;
-    const OTHER_MIN = 14;
+    // Last-resort downscale if a page would overflow vertically.
+    const OTHER_MIN = 10;
 
     const renderPage = (pageBlocks) => {
       const blocks = Array.isArray(pageBlocks) ? pageBlocks : [];

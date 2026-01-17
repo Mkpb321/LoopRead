@@ -390,7 +390,9 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
   }
 
   // --- PDF Export (current project; selectable text; full Unicode via embedded font) ---
-  let _pdfFontDejaVuB64 = null;
+  let _pdfFontB64 = null;
+  let _pdfFontName = null;
+  let _pdfFontFile = null;
 
   function arrayBufferToBase64(buf) {
     const bytes = new Uint8Array(buf);
@@ -403,33 +405,42 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
   }
 
   async function ensurePdfFont(doc) {
-    // DejaVu Sans supports Latin (incl. diacritics), Greek and Hebrew.
-    // The file is bundled with the app under ./fonts/DejaVuSans.ttf
-    if (!_pdfFontDejaVuB64) {
-      let res;
-      try {
-        res = await fetch('fonts/DejaVuSans.ttf', { cache: 'force-cache' });
-      } catch (e) {
+    // Prefer Times New Roman if the user provides it (cannot be bundled due to licensing).
+    // Fallback to bundled DejaVu Serif (Times-like, full Unicode for Latin/Greek/Hebrew).
+    if (!_pdfFontB64 || !_pdfFontName || !_pdfFontFile) {
+      const candidates = [
+        { url: 'fonts/TimesNewRoman.ttf', file: 'TimesNewRoman.ttf', name: 'TimesNewRoman' },
+        { url: 'fonts/DejaVuSerif.ttf', file: 'DejaVuSerif.ttf', name: 'DejaVuSerif' },
+        { url: 'fonts/DejaVuSans.ttf', file: 'DejaVuSans.ttf', name: 'DejaVuSans' }
+      ];
+      let loaded = false;
+      for (const c of candidates) {
+        try {
+          const res = await fetch(c.url, { cache: 'force-cache' });
+          if (!res || !res.ok) continue;
+          const buf = await res.arrayBuffer();
+          _pdfFontB64 = arrayBufferToBase64(buf);
+          _pdfFontName = c.name;
+          _pdfFontFile = c.file;
+          loaded = true;
+          break;
+        } catch (_) { /* ignore */ }
+      }
+      if (!loaded) {
         throw new Error('Schriftart konnte nicht geladen werden. Bitte die App ueber einen Webserver bereitstellen.');
       }
-      if (!res || !res.ok) {
-        throw new Error('Schriftart konnte nicht geladen werden (fonts/DejaVuSans.ttf).');
-      }
-      const buf = await res.arrayBuffer();
-      _pdfFontDejaVuB64 = arrayBufferToBase64(buf);
     }
 
     // Register once per document.
     try {
-      doc.addFileToVFS('DejaVuSans.ttf', _pdfFontDejaVuB64);
-      doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
-      doc.setFont('DejaVuSans', 'normal');
+      doc.addFileToVFS(_pdfFontFile, _pdfFontB64);
+      doc.addFont(_pdfFontFile, _pdfFontName, 'normal');
+      doc.setFont(_pdfFontName, 'normal');
     } catch (_) {
       // If the font is already registered, jsPDF may throw; ignore and set font.
-      try { doc.setFont('DejaVuSans', 'normal'); } catch { /* ignore */ }
+      try { doc.setFont(_pdfFontName, 'normal'); } catch { /* ignore */ }
     }
   }
-
   function hasHebrew(s) {
     return /[\u0590-\u05FF]/.test(String(s ?? ''));
   }
@@ -537,9 +548,11 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWpt = doc.internal.pageSize.getWidth();
     const pageHpt = doc.internal.pageSize.getHeight();
-    const paddingPt = 62;
-    const contentW = pageWpt - paddingPt * 2;
-    const contentH = pageHpt - paddingPt * 2;
+    const paddingX = 56;
+    const paddingTop = 84; // more top space
+    const paddingBottom = 56;
+    const contentW = pageWpt - paddingX * 2;
+    const contentH = pageHpt - paddingTop - paddingBottom;
 
     try {
       await ensurePdfFont(doc);
@@ -577,9 +590,9 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
 
     const renderPage = (pageBlocks) => {
       const blocks = Array.isArray(pageBlocks) ? pageBlocks : [];
-      const xLeft = paddingPt;
-      const xRight = pageWpt - paddingPt;
-      let y = paddingPt;
+      const xLeft = paddingX;
+      const xRight = pageWpt - paddingX;
+      let y = paddingTop;
 
       // Prepare wrapped lines for blocks 2..n at fixed size.
       const wrappedOther = [];

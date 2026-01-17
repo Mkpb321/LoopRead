@@ -271,6 +271,7 @@
               <div class="help-item"><span class="help-pill">Neu</span><div>Neue Blocksammlung erstellen.</div></div>
               <div class="help-item"><span class="help-pill">Import</span><div>Excel importieren.</div></div>
               <div class="help-item"><span class="help-pill">Export</span><div>Aktuelles Projekt als Excel exportieren.</div></div>
+              <div class="help-item"><span class="help-pill">Export PDF</span><div>Aktuelles Projekt als PDF exportieren (1 Seite pro Sammlung).</div></div>
               <div class="help-item"><span class="help-pill">Ausblenden</span><div>Textblöcke ausblenden/einblenden (lokal).</div></div>
               <div class="help-item"><span class="help-pill">Löschen</span><div>Sammlungen löschen (Mehrfachauswahl).</div></div>
               <div class="help-item"><span class="help-pill">Hilfe</span><div>Diese Hilfeseite.</div></div>
@@ -299,6 +300,7 @@
       <button id="menuToAdd" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/><path d="M4 4h16v16H4z" /></svg></span><span class="drawer-text">Neue Blocksammlung</span></button>
       <button id="menuToImport" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10"/><path d="M8 9l4 4 4-4"/><path d="M4 17v3h16v-3"/></svg></span><span class="drawer-text">Import</span></button>
       <button id="menuExport" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V11"/><path d="M8 15l4-4 4 4"/><path d="M4 7V4h16v3"/></svg></span><span class="drawer-text">Export (Excel)</span></button>
+      <button id="menuExportPdf" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></span><span class="drawer-text">Export (PDF)</span></button>
       <button id="menuToHide" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><path d="M9.5 9.5a3.5 3.5 0 0 0 5 5"/><path d="M3 3l18 18"/></svg></span><span class="drawer-text">Textblöcke ausblenden</span></button>
       <button id="menuToDelete" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 16h10l1-16"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></span><span class="drawer-text">Sammlungen löschen</span></button>
       <button id="menuToHelp" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18h.01"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"/><path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"/></svg></span><span class="drawer-text">Hilfe</span></button>
@@ -315,6 +317,9 @@
 
   <!-- SheetJS (XLSX/CSV Import) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- jsPDF (PDF Export) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="app.core.js"></script>
   <script src="app.highlight.js"></script>
   <script src="app.views.js"></script>

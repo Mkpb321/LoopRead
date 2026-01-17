@@ -382,6 +382,171 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
     showToast(`Export gestartet: 1 Excel-Datei mit ${wb.SheetNames.length} Tabellenblatt(ern).`);
   }
 
+  function sanitizeFilenamePart(s) {
+    const raw = String(s ?? '').trim();
+    if (!raw) return 'projekt';
+    // Replace unsafe filename chars with underscore
+    return raw.replace(/[^a-zA-Z0-9\u00C0-\u017F._-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'projekt';
+  }
+
+  function exportCurrentProjectAsPdf() {
+    const jsPDF = window.jspdf?.jsPDF;
+    if (!jsPDF) {
+      showToast('PDF-Bibliothek (jsPDF) nicht geladen.');
+      return;
+    }
+
+    const project = app.getActiveProject?.();
+    if (!project?.id) {
+      showToast('Kein aktives Projekt.');
+      return;
+    }
+    if (!Array.isArray(state.collections) || state.collections.length === 0) {
+      showToast('Keine Sammlungen zum Exportieren vorhanden.');
+      return;
+    }
+
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+    const margin = { l: 56, t: 56, r: 56, b: 56 };
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const maxW = pageW - margin.l - margin.r;
+    const availH = pageH - margin.t - margin.b;
+
+    const blockGap = 18;
+
+    const otherLH = 1.15;
+    const firstLH = 1.4;
+
+    // Titelseite: nutze die Block-Titel der allerersten Sammlung als "Blockinhalt".
+    const titlePageBlocks = (Array.isArray(state.collections[0]) ? state.collections[0] : [])
+      .map(b => String(b?.title ?? '').trim())
+      .filter(t => t.length > 0);
+
+    const normalizeText = (t) => String(t ?? '').replace(/\r\n/g, '\n');
+
+    function splitTextRespectingNewlines(text, width) {
+      const out = [];
+      const parts = normalizeText(text).split('\n');
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i];
+        if (!p) {
+          out.push('');
+          continue;
+        }
+        const wrapped = doc.splitTextToSize(p, width);
+        for (const line of wrapped) out.push(String(line));
+      }
+      return out;
+    }
+
+    function measureTextHeight(text, width, fontSize, lineHeightFactor) {
+      doc.setFontSize(fontSize);
+      const lines = splitTextRespectingNewlines(text, width);
+      const lineH = fontSize * lineHeightFactor;
+      return lines.length * lineH;
+    }
+
+    function drawText(text, x, y, width, fontSize, lineHeightFactor) {
+      doc.setFontSize(fontSize);
+      const lines = splitTextRespectingNewlines(text, width);
+      const lineH = fontSize * lineHeightFactor;
+      for (const line of lines) {
+        // jsPDF expects non-empty strings; keep blank lines as ' '
+        doc.text(line || ' ', x, y);
+        y += lineH;
+      }
+      return y;
+    }
+
+    function ensureHelvetica() {
+      try { doc.setFont('helvetica', 'normal'); } catch (_) { /* ignore */ }
+    }
+
+    ensureHelvetica();
+
+    function renderSinglePage(contents) {
+      const n = contents.length;
+      let otherFs = 20;
+
+      const minFirstFs = 12;
+      const maxFirstFs = 46;
+
+      const minFirstH = measureTextHeight(contents[0] || '', maxW, minFirstFs, firstLH);
+      const restHeightAt20 = (function () {
+        let h = 0;
+        for (let i = 1; i < n; i++) {
+          h += measureTextHeight(contents[i] || '', maxW, otherFs, otherLH);
+          if (i < n - 1) h += blockGap;
+        }
+        return h;
+      })();
+
+      // If the non-first blocks alone would overflow, scale them down as a last-resort.
+      if (n > 1 && (restHeightAt20 + blockGap + minFirstH) > availH) {
+        const room = Math.max(1, availH - minFirstH - blockGap);
+        const scale = room / Math.max(1, restHeightAt20);
+        otherFs = Math.max(12, Math.floor(20 * scale));
+      }
+
+      const totalHeightForFirstFs = (fs) => {
+        let h = 0;
+        for (let i = 0; i < n; i++) {
+          const isFirst = (i === 0);
+          const useFs = isFirst ? fs : otherFs;
+          const useLH = isFirst ? firstLH : otherLH;
+          h += measureTextHeight(contents[i] || '', maxW, useFs, useLH);
+          if (i < n - 1) h += blockGap;
+        }
+        return h;
+      };
+
+      let firstFs = minFirstFs;
+      for (let fs = maxFirstFs; fs >= minFirstFs; fs--) {
+        if (totalHeightForFirstFs(fs) <= availH) {
+          firstFs = fs;
+          break;
+        }
+      }
+
+      let y = margin.t;
+      for (let i = 0; i < n; i++) {
+        const isFirst = (i === 0);
+        const useFs = isFirst ? firstFs : otherFs;
+        const useLH = isFirst ? firstLH : otherLH;
+        y = drawText(contents[i] || '', margin.l, y, maxW, useFs, useLH);
+        if (i < n - 1) y += blockGap;
+      }
+    }
+
+    // Export-Reihenfolge:
+    // 1) Zusätzliche Titelseite (nur Titel als "Blockinhalt")
+    // 2) Danach: eine Seite pro Sammlung (ohne Titel)
+    // jsPDF erstellt initial Seite 1. Wir nutzen diese initiale Seite sinnvoll,
+    // statt nachträglich Seiten löschen zu müssen.
+
+    let pageUsed = false;
+
+    if (titlePageBlocks.length > 0) {
+      renderSinglePage(titlePageBlocks.map(t => normalizeText(t)));
+      pageUsed = true;
+    }
+
+    for (let ci = 0; ci < state.collections.length; ci++) {
+      if (pageUsed) doc.addPage();
+      const blocks = Array.isArray(state.collections[ci]) ? state.collections[ci] : [];
+      const contents = blocks.map(b => normalizeText(b?.content ?? '').trim());
+      renderSinglePage(contents);
+      pageUsed = true;
+    }
+
+    const filename = `loopread_${sanitizeFilenamePart(project.name)}_${formatLocalTimestampForFilename()}.pdf`;
+    const blob = doc.output('blob');
+    triggerDownloadBlob(filename, blob);
+    showToast('PDF-Export gestartet.');
+  }
+
   // Firebase Auth (Login only)
   // WICHTIG: Trage hier deine Firebase Web-App Konfiguration ein.
   const firebaseConfig = {
@@ -452,6 +617,7 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
     els.menuToAdd.addEventListener('click', () => { setView('add'); closeMenu(); });
     els.menuToImport.addEventListener('click', () => { setView('import'); closeMenu(); });
     els.menuExport.addEventListener('click', () => { closeMenu(); exportAllAsXlsx(); });
+    els.menuExportPdf?.addEventListener('click', () => { closeMenu(); exportCurrentProjectAsPdf(); });
     els.menuToDelete.addEventListener('click', () => { setView('delete'); closeMenu(); });
     els.menuToHide.addEventListener('click', () => { setView('hide'); closeMenu(); });
     els.menuToNotes?.addEventListener('click', () => { setView('notes'); closeMenu(); });

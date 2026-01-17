@@ -67,6 +67,7 @@
     menuToAdd: document.getElementById('menuToAdd'),
     menuToImport: document.getElementById('menuToImport'),
     menuExport: document.getElementById('menuExport'),
+    menuExportPdf: document.getElementById('menuExportPdf'),
     menuToDelete: document.getElementById('menuToDelete'),
     menuToHide: document.getElementById('menuToHide'),
     menuToProjects: document.getElementById('menuToProjects'),

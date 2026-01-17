@@ -30,6 +30,8 @@ suchmöglichkeiten
 
 ctrl+z verhalten
 
+pdf hat oben komisch kleinen abstand. und es achtet nicht auf ausgeblendete blöcke
+
 Änderungen:
 
 

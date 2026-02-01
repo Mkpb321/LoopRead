@@ -26,6 +26,7 @@
     viewProjects: document.getElementById('view-projects'),
     viewNotes: document.getElementById('view-notes'),
     viewHelp: document.getElementById('view-help'),
+    viewFlashcards: document.getElementById('view-flashcards'),
 
     editors: document.getElementById('editors'),
     addForm: document.getElementById('addForm'),
@@ -72,6 +73,7 @@
     menuToHide: document.getElementById('menuToHide'),
     menuToProjects: document.getElementById('menuToProjects'),
     menuToNotes: document.getElementById('menuToNotes'),
+    menuToFlashcards: document.getElementById('menuToFlashcards'),
     menuToHelp: document.getElementById('menuToHelp'),
 
     // menuClearAll intentionally removed (no "Alle Daten löschen" anymore)
@@ -103,6 +105,30 @@
     markerNoteSave: document.getElementById('markerNoteSave'),
     markerNoteDelete: document.getElementById('markerNoteDelete'),
     markerNoteCancel: document.getElementById('markerNoteCancel'),
+
+
+    // Flashcards
+    flashcardsSubtitle: document.getElementById('flashcardsSubtitle'),
+    flashcardsSelectArea: document.getElementById('flashcardsSelectArea'),
+    flashcardsStudyArea: document.getElementById('flashcardsStudyArea'),
+    flashcardsProjectsList: document.getElementById('flashcardsProjectsList'),
+    btnFlashcardsBuild: document.getElementById('btnFlashcardsBuild'),
+    btnFlashcardsBack: document.getElementById('btnFlashcardsBack'),
+
+    flashcardsProgress: document.getElementById('flashcardsProgress'),
+    flashcardCard: document.getElementById('flashcardCard'),
+    flashcardFront: document.getElementById('flashcardFront'),
+    flashcardBack: document.getElementById('flashcardBack'),
+    flashcardsAnswerActions: document.getElementById('flashcardsAnswerActions'),
+    btnFlashcardWrong: document.getElementById('btnFlashcardWrong'),
+    btnFlashcardRight: document.getElementById('btnFlashcardRight'),
+
+    flashResumeOverlay: document.getElementById('flashResumeOverlay'),
+    flashResumeBox: document.getElementById('flashResumeBox'),
+    flashResumeMsg: document.getElementById('flashResumeMsg'),
+    flashResumeCancel: document.getElementById('flashResumeCancel'),
+    flashResumeNew: document.getElementById('flashResumeNew'),
+    flashResumeContinue: document.getElementById('flashResumeContinue'),
 
     // Login
     loginForm: document.getElementById('loginForm'),
@@ -138,6 +164,14 @@
 
     // Notes view UI state (set by views)
     notesExpandedMarkerId: null,
+
+    // Flashcards (in-memory UI state; unfinished stack is stored locally in browser)
+    flashcards: {
+      queue: [],
+      total: 0,
+      selectedProjectIds: [],
+      revealed: false,
+    },
   };
 
   // --- Hidden blocks (project-global; by index) ---
@@ -383,6 +417,72 @@ function keyHiddenBlocks(projectId) {
 function keyLastReadCollectionId(projectId) {
   if (!state.uid) return null;
   return lsKey('uid', state.uid, 'project', String(projectId), 'lastReadCollectionId');
+}
+
+
+function keyFlashcardsStack() {
+  if (!state.uid) return null;
+  return lsKey('uid', state.uid, 'flashcardsStack');
+}
+
+function loadLocalFlashcardsStack() {
+  const k = keyFlashcardsStack();
+  if (!k) return null;
+  const obj = safeParse(safeLocalGet(k), null);
+  if (!obj || typeof obj !== 'object') return null;
+
+  const queueIn = Array.isArray(obj.queue) ? obj.queue : [];
+  const queue = queueIn.map((c) => ({
+    front: String(c?.front ?? ''),
+    back: String(c?.back ?? ''),
+    projectId: String(c?.projectId ?? ''),
+    markerId: String(c?.markerId ?? ''),
+  })).filter(c => (c.front.trim().length > 0) || (c.back.trim().length > 0));
+
+  if (queue.length === 0) return null;
+
+  const totalRaw = Number(obj.total);
+  const total = Number.isFinite(totalRaw) && totalRaw > 0 ? Math.max(queue.length, Math.floor(totalRaw)) : queue.length;
+
+  const projectIds = Array.isArray(obj.projectIds) ? obj.projectIds.map(x => String(x ?? '').trim()).filter(Boolean) : [];
+
+  return {
+    queue,
+    total,
+    projectIds,
+    createdAt: Number(obj.createdAt) || Date.now(),
+  };
+}
+
+function persistLocalFlashcardsStack(stack) {
+  const k = keyFlashcardsStack();
+  if (!k) return;
+
+  const q = Array.isArray(stack?.queue) ? stack.queue : [];
+  if (q.length === 0) {
+    safeLocalRemove(k);
+    return;
+  }
+
+  const payload = {
+    queue: q.map(c => ({
+      front: String(c?.front ?? ''),
+      back: String(c?.back ?? ''),
+      projectId: String(c?.projectId ?? ''),
+      markerId: String(c?.markerId ?? ''),
+    })),
+    total: Number(stack?.total) || q.length,
+    projectIds: Array.isArray(stack?.projectIds) ? stack.projectIds.map(x => String(x ?? '').trim()).filter(Boolean) : [],
+    createdAt: Number(stack?.createdAt) || Date.now(),
+  };
+
+  safeLocalSet(k, JSON.stringify(payload));
+}
+
+function clearLocalFlashcardsStack() {
+  const k = keyFlashcardsStack();
+  if (!k) return;
+  safeLocalRemove(k);
 }
 
 function loadLocalActiveProjectId() {
@@ -785,6 +885,20 @@ clampIndex();
     }
   }
 
+  async function fetchMarkersForProject(projectId) {
+    if (!state.uid) return [];
+    const pid = String(projectId || '').trim();
+    if (!pid) return [];
+    try {
+      const snap = await markersColRef(pid).orderBy('updatedAt', 'desc').get();
+      const marks = snap.docs.map(d => ({ id: d.id, ...(d.data() || {}) }));
+      return normalizeMarkers(marks);
+    } catch {
+      return [];
+    }
+  }
+
+
   // --- Save minimal UI state locally (no Firestore writes) ---
 let uiSaveTimer = null;
 let lastSavedHiddenBlocksJson = '';
@@ -913,6 +1027,10 @@ function saveState() {
     state.currentIndex = 0;
     state.markers = [];
     state.notesExpandedMarkerId = null;
+    state.flashcards.queue = [];
+    state.flashcards.total = 0;
+    state.flashcards.selectedProjectIds = [];
+    state.flashcards.revealed = false;
 
     // Create new
     await appendCollections(collections);
@@ -1103,6 +1221,12 @@ function saveState() {
 
   app.persistMarkerUpsert = persistMarkerUpsert;
   app.persistMarkerDelete = persistMarkerDelete;
+
+  // Flashcards (browser-local stack)
+  app.fetchMarkersForProject = fetchMarkersForProject;
+  app.loadLocalFlashcardsStack = loadLocalFlashcardsStack;
+  app.persistLocalFlashcardsStack = persistLocalFlashcardsStack;
+  app.clearLocalFlashcardsStack = clearLocalFlashcardsStack;
 
   app.setAuthLocked = setAuthLocked;
   app.resetInMemoryState = resetInMemoryState;

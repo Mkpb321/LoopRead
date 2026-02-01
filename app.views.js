@@ -321,6 +321,378 @@
   }
 
 
+  // --- Flashcards (browser-local stack; markers across projects) ---
+  function resetFlashcardsState() {
+    state.flashcards.queue = [];
+    state.flashcards.total = 0;
+    state.flashcards.revealed = false;
+
+    // Default selection: active project (if any)
+    const pid = state.activeProjectId;
+    state.flashcards.selectedProjectIds = pid ? [pid] : [];
+  }
+
+  function setFlashcardsMode(mode) {
+    const isStudy = mode === 'study';
+    els.flashcardsSelectArea && (els.flashcardsSelectArea.hidden = isStudy);
+    els.flashcardsStudyArea && (els.flashcardsStudyArea.hidden = !isStudy);
+  }
+
+  function selectedProjectSet() {
+    const arr = Array.isArray(state.flashcards.selectedProjectIds) ? state.flashcards.selectedProjectIds : [];
+    return new Set(arr.map(x => String(x || '').trim()).filter(Boolean));
+  }
+
+  function updateFlashcardsBuildButton() {
+    if (!els.btnFlashcardsBuild) return;
+    const n = selectedProjectSet().size;
+    els.btnFlashcardsBuild.disabled = n === 0;
+  }
+
+  async function renderFlashcardsProjectsSelect() {
+    if (!els.flashcardsProjectsList) return;
+
+    await loadProjectsMeta();
+    updateProjectNameUI();
+
+    const projects = Array.isArray(state.projects) ? state.projects : [];
+    els.flashcardsProjectsList.innerHTML = '';
+
+    if (projects.length === 0) {
+      const div = document.createElement('div');
+      div.className = 'empty';
+      div.innerHTML = '<strong>Keine Projekte vorhanden.</strong><br/>Erstelle zuerst ein Projekt.';
+      els.flashcardsProjectsList.appendChild(div);
+      updateFlashcardsBuildButton();
+      return;
+    }
+
+    const sel = selectedProjectSet();
+
+    for (const p of projects) {
+      const row = document.createElement('div');
+      row.className = 'flash-project-row';
+
+      const name = document.createElement('div');
+      name.className = 'flash-project-name';
+      name.textContent = (p.name || p.id) + (p.id === state.activeProjectId ? ' · Aktiv' : '');
+
+      const toggle = document.createElement('label');
+      toggle.className = 'flash-project-toggle';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = sel.has(p.id);
+      cb.addEventListener('change', () => {
+        const next = selectedProjectSet();
+        if (cb.checked) next.add(p.id);
+        else next.delete(p.id);
+        state.flashcards.selectedProjectIds = Array.from(next);
+        updateFlashcardsBuildButton();
+      });
+
+      const span = document.createElement('span');
+      span.textContent = 'Auswählen';
+
+      toggle.appendChild(cb);
+      toggle.appendChild(span);
+
+      row.appendChild(name);
+      row.appendChild(toggle);
+
+      els.flashcardsProjectsList.appendChild(row);
+    }
+
+    updateFlashcardsBuildButton();
+  }
+
+  function renderFlashcardCurrent() {
+    const q = Array.isArray(state.flashcards.queue) ? state.flashcards.queue : [];
+    const total = Number(state.flashcards.total) || q.length;
+
+    if (!els.flashcardsProgress || !els.flashcardFront || !els.flashcardBack || !els.flashcardsAnswerActions) return;
+
+    if (q.length === 0) {
+      els.flashcardsProgress.textContent = 'Stapel ist leer.';
+      els.flashcardFront.textContent = 'Fertig.';
+      els.flashcardBack.textContent = '';
+      els.flashcardBack.hidden = true;
+      els.flashcardsAnswerActions.hidden = true;
+      state.flashcards.revealed = false;
+      return;
+    }
+
+    const card = q[0];
+    els.flashcardsProgress.textContent = `Noch ${q.length} von ${total}`;
+
+    els.flashcardFront.textContent = String(card?.front ?? '').trim();
+    els.flashcardBack.textContent = String(card?.back ?? '').trim();
+
+    els.flashcardBack.hidden = !state.flashcards.revealed;
+    els.flashcardsAnswerActions.hidden = !state.flashcards.revealed;
+
+    els.flashcardCard?.setAttribute('aria-label', state.flashcards.revealed ? 'Antwort bewerten' : 'Karte aufdecken');
+  }
+
+  function countChars(s, ch) {
+    const str = String(s ?? '');
+    const re = new RegExp(`\\${ch}`, 'g');
+    const m = str.match(re);
+    return m ? m.length : 0;
+  }
+
+  function makeCardFromNote(noteText, projectId, markerId) {
+    const raw = String(noteText ?? '');
+    const cClose = countChars(raw, '}');
+    const cOpen = countChars(raw, '{');
+    if (cClose !== 1) return null;
+    if (cOpen !== 0) return null;
+
+    const idx = raw.indexOf('}');
+    if (idx < 0) return null;
+
+    const front = raw.slice(0, idx).trim();
+    const back = raw.slice(idx + 1).trim();
+
+    // keep even if one side is empty; the user controls note quality
+    return { front, back, projectId: String(projectId || ''), markerId: String(markerId || '') };
+  }
+
+  function shuffleInPlace(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  async function buildFlashcardsStackFromSelection() {
+    const sel = Array.from(selectedProjectSet());
+    if (sel.length === 0) {
+      showToast('Bitte mindestens ein Projekt auswählen.');
+      return;
+    }
+
+    els.btnFlashcardsBuild && (els.btnFlashcardsBuild.disabled = true);
+    showToast('Erzeuge Stapel…');
+
+    try {
+      const all = await Promise.all(sel.map(async (pid) => {
+        const marks = await app.fetchMarkersForProject?.(pid);
+        return { pid, marks: Array.isArray(marks) ? marks : [] };
+      }));
+
+      const cards = [];
+      for (const { pid, marks } of all) {
+        for (const mk of marks) {
+          const note = mk && mk.note != null ? String(mk.note) : '';
+          if (!note.trim()) continue;
+          const card = makeCardFromNote(note, pid, mk.id);
+          if (card) cards.push(card);
+        }
+      }
+
+      if (cards.length === 0) {
+        showToast('Keine passenden Notizen gefunden (genau ein } und kein {).');
+        resetFlashcardsState();
+        setFlashcardsMode('select');
+        await renderFlashcardsProjectsSelect();
+        return;
+      }
+
+      shuffleInPlace(cards);
+
+      const stack = {
+        queue: cards,
+        total: cards.length,
+        projectIds: sel,
+        createdAt: Date.now(),
+      };
+
+      app.persistLocalFlashcardsStack?.(stack);
+
+      state.flashcards.queue = stack.queue;
+      state.flashcards.total = stack.total;
+      state.flashcards.revealed = false;
+
+      setFlashcardsMode('study');
+      renderFlashcardCurrent();
+      showToast(`Stapel erstellt: ${cards.length} Karte${cards.length === 1 ? '' : 'n'}.`);
+    } finally {
+      updateFlashcardsBuildButton();
+    }
+  }
+
+  function revealFlashcard() {
+    const q = Array.isArray(state.flashcards.queue) ? state.flashcards.queue : [];
+    if (q.length === 0) return;
+    if (state.flashcards.revealed) return;
+    state.flashcards.revealed = true;
+    renderFlashcardCurrent();
+  }
+
+  function answerFlashcard(isRight) {
+    const q = Array.isArray(state.flashcards.queue) ? state.flashcards.queue : [];
+    if (q.length === 0) return;
+    if (!state.flashcards.revealed) return;
+
+    const total = Number(state.flashcards.total) || q.length;
+
+    if (isRight) {
+      q.shift();
+    } else {
+      q.push(q.shift());
+    }
+
+    state.flashcards.queue = q;
+    state.flashcards.total = total;
+    state.flashcards.revealed = false;
+
+    if (q.length === 0) {
+      app.clearLocalFlashcardsStack?.();
+      showToast('Stapel abgeschlossen.');
+      setFlashcardsMode('select');
+      // keep selection from previous stack if available
+      if (!Array.isArray(state.flashcards.selectedProjectIds) || state.flashcards.selectedProjectIds.length === 0) {
+        resetFlashcardsState();
+      }
+      renderFlashcardsProjectsSelect();
+      return;
+    }
+
+    app.persistLocalFlashcardsStack?.({
+      queue: q,
+      total,
+      projectIds: Array.isArray(state.flashcards.selectedProjectIds) ? state.flashcards.selectedProjectIds : [],
+      createdAt: Date.now(),
+    });
+
+    renderFlashcardCurrent();
+  }
+
+  async function renderFlashcardsView() {
+    if (!els.viewFlashcards) return;
+
+    // If no selection exists (fresh entry), default to current project.
+    if (!Array.isArray(state.flashcards.selectedProjectIds) || state.flashcards.selectedProjectIds.length === 0) {
+      const pid = state.activeProjectId;
+      state.flashcards.selectedProjectIds = pid ? [pid] : [];
+    }
+
+    const q = Array.isArray(state.flashcards.queue) ? state.flashcards.queue : [];
+    if (q.length > 0) {
+      setFlashcardsMode('study');
+      renderFlashcardCurrent();
+      return;
+    }
+
+    setFlashcardsMode('select');
+    await renderFlashcardsProjectsSelect();
+  }
+
+  // Resume prompt (3-way: continue / new / cancel)
+  let flashResumeResolver = null;
+
+  function closeFlashResumePrompt(result) {
+    if (!flashResumeResolver) return;
+    const resolve = flashResumeResolver;
+    flashResumeResolver = null;
+
+    if (els.flashResumeOverlay) els.flashResumeOverlay.hidden = true;
+    if (els.flashResumeBox) {
+      els.flashResumeBox.classList.remove('open');
+      els.flashResumeBox.setAttribute('aria-hidden', 'true');
+    }
+    document.body.style.overflow = '';
+    resolve(result);
+  }
+
+  function showFlashResumePrompt(message) {
+    if (!els.flashResumeBox || !els.flashResumeOverlay || !els.flashResumeMsg) {
+      // Fallback: behave as "new"
+      return Promise.resolve('new');
+    }
+
+    if (flashResumeResolver) {
+      closeFlashResumePrompt(null);
+    }
+
+    els.flashResumeMsg.textContent = String(message || '');
+
+    els.flashResumeOverlay.hidden = false;
+    els.flashResumeBox.classList.add('open');
+    els.flashResumeBox.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    try { els.flashResumeContinue?.focus(); } catch { /* ignore */ }
+
+    return new Promise((resolve) => { flashResumeResolver = resolve; });
+  }
+
+  function initFlashResumePrompt() {
+    if (!els.flashResumeOverlay || !els.flashResumeBox) return;
+
+    els.flashResumeOverlay.addEventListener('click', () => closeFlashResumePrompt(null));
+    els.flashResumeCancel?.addEventListener('click', () => closeFlashResumePrompt(null));
+    els.flashResumeNew?.addEventListener('click', () => closeFlashResumePrompt('new'));
+    els.flashResumeContinue?.addEventListener('click', () => closeFlashResumePrompt('continue'));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && flashResumeResolver) {
+        e.preventDefault();
+        closeFlashResumePrompt(null);
+      }
+    });
+  }
+
+  initFlashResumePrompt();
+
+  function loadStackIntoState(stack) {
+    const q = Array.isArray(stack?.queue) ? stack.queue : [];
+    state.flashcards.queue = q;
+    state.flashcards.total = Number(stack?.total) || q.length;
+    state.flashcards.revealed = false;
+    if (Array.isArray(stack?.projectIds) && stack.projectIds.length) {
+      state.flashcards.selectedProjectIds = stack.projectIds.map(x => String(x || '').trim()).filter(Boolean);
+    }
+  }
+
+  async function openFlashcardsEntry() {
+    const existing = app.loadLocalFlashcardsStack?.();
+
+    if (existing && Array.isArray(existing.queue) && existing.queue.length > 0) {
+      const msg = `Du hast noch einen unvollständigen Stapel (${existing.queue.length} Karte${existing.queue.length === 1 ? '' : 'n'}).\n\nFortfahren oder neuen Stapel erstellen?`;
+      const choice = await showFlashResumePrompt(msg);
+
+      if (choice === 'continue') {
+        loadStackIntoState(existing);
+        setView('flashcards');
+        return;
+      }
+
+      if (choice === 'new') {
+        app.clearLocalFlashcardsStack?.();
+        resetFlashcardsState();
+        setView('flashcards');
+        return;
+      }
+
+      // Cancel: stay where you are
+      return;
+    }
+
+    // No existing stack -> go to selection
+    if (!Array.isArray(state.flashcards.selectedProjectIds) || state.flashcards.selectedProjectIds.length === 0) {
+      const pid = state.activeProjectId;
+      state.flashcards.selectedProjectIds = pid ? [pid] : [];
+    }
+    setView('flashcards');
+  }
+
+
+
   // --- Projects (top-level grouping) ---
   async function renderProjectsView() {
     if (!els.projectsList) return;
@@ -945,6 +1317,7 @@ Dabei werden Sammlungen und Markierungen endgültig entfernt.`, 'Löschen', 'Abb
     els.viewProjects?.classList.toggle('view-active', view === 'projects');
     els.viewNotes?.classList.toggle('view-active', view === 'notes');
     els.viewHelp?.classList.toggle('view-active', view === 'help');
+    els.viewFlashcards?.classList.toggle('view-active', view === 'flashcards');
 
     const hasCollections = state.collections.length > 0;
     const inReader = (view === 'reader');
@@ -966,6 +1339,10 @@ Dabei werden Sammlungen und Markierungen endgültig entfernt.`, 'Löschen', 'Abb
 
     if (view === 'notes') {
       renderNotesView();
+    }
+
+    if (view === 'flashcards') {
+      renderFlashcardsView();
     }
 
     // Do not change active tool state when leaving reader; it should restore when returning.
@@ -1030,6 +1407,13 @@ Dabei werden Sammlungen und Markierungen endgültig entfernt.`, 'Löschen', 'Abb
   // Notes/markers overview
   app.renderNotesView = renderNotesView;
   app.onNotesListClick = onNotesListClick;
+  // Flashcards
+  app.renderFlashcardsView = renderFlashcardsView;
+  app.openFlashcardsEntry = openFlashcardsEntry;
+  app.buildFlashcardsStackFromSelection = buildFlashcardsStackFromSelection;
+  app.revealFlashcard = revealFlashcard;
+  app.answerFlashcard = answerFlashcard;
+  app.resetFlashcardsState = resetFlashcardsState;
 
   // Some helpers used by other files
   app.closeMenu = closeMenu;

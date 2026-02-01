@@ -760,6 +760,7 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
     els.menuToDelete.addEventListener('click', () => { setView('delete'); closeMenu(); });
     els.menuToHide.addEventListener('click', () => { setView('hide'); closeMenu(); });
     els.menuToNotes?.addEventListener('click', () => { setView('notes'); closeMenu(); });
+    els.menuToFlashcards?.addEventListener('click', async () => { closeMenu(); await app.openFlashcardsEntry?.(); });
     els.menuToHelp?.addEventListener('click', () => { setView('help'); closeMenu(); });
 
     els.menuLogout.addEventListener('click', () => {
@@ -796,6 +797,13 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
     els.btnHideCancel.addEventListener('click', cancelHideDraft);
     els.btnNotesBack?.addEventListener('click', () => { setView('reader'); app.scrollTop(); });
     els.btnHelpBack?.addEventListener('click', () => { setView('reader'); app.scrollTop(); });
+
+    // Flashcards view
+    els.btnFlashcardsBack?.addEventListener('click', () => { setView('reader'); app.scrollTop(); });
+    els.btnFlashcardsBuild?.addEventListener('click', () => { app.buildFlashcardsStackFromSelection?.(); });
+    els.flashcardCard?.addEventListener('click', () => { app.revealFlashcard?.(); });
+    els.btnFlashcardWrong?.addEventListener('click', () => { app.answerFlashcard?.(false); });
+    els.btnFlashcardRight?.addEventListener('click', () => { app.answerFlashcard?.(true); });
 
     els.notesList?.addEventListener('click', onNotesListClick);
     els.btnHideSave.addEventListener('click', applyHideDraft);

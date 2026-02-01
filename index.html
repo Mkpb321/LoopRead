@@ -59,6 +59,17 @@
       <button id="markerNoteDelete" class="btn btn-danger" type="button">Markierung löschen</button>
       <button id="markerNoteSave" class="btn" type="button">Speichern</button>
     </div>
+  
+
+
+  <div id="flashResumeOverlay" class="confirm-overlay" hidden></div>
+  <div id="flashResumeBox" class="confirm-box flash-resume-box" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="confirm-msg" id="flashResumeMsg"></div>
+    <div class="confirm-actions">
+      <button id="flashResumeCancel" class="btn btn-ghost" type="button">Abbrechen</button>
+      <button id="flashResumeNew" class="btn btn-ghost" type="button">Neuer Stapel</button>
+      <button id="flashResumeContinue" class="btn" type="button">Fortfahren</button>
+    </div>
   </div>
 
   <main class="main" role="main">
@@ -212,6 +223,52 @@
       </div>
     </section>
 
+    
+    <!-- Flashcards View -->
+    <section id="view-flashcards" class="view" aria-label="Flashcards">
+      <div class="view-inner">
+        <h2 class="view-title">Flashcards</h2>
+        <p class="view-subtitle" id="flashcardsSubtitle">Erzeuge Karteikarten aus Notizen im Format „Vorderseite} Rückseite“ (genau ein } und kein {).</p>
+
+        <div id="flashcardsSelectArea" class="flash-area">
+          <div class="help-card flash-hint">
+            <div class="help-card-title">Projekte auswählen</div>
+            <div class="help-kv">
+              <div class="help-item"><span class="help-pill">Format</span><div>Eine Karte pro Notiz: <strong>Vorderseite} Rückseite</strong></div></div>
+              <div class="help-item"><span class="help-pill">Kandidat</span><div>Nur wenn die Notiz <strong>genau ein</strong> <strong>}</strong> enthält und <strong>kein</strong> <strong>{</strong>.</div></div>
+              <div class="help-item"><span class="help-pill">Quelle</span><div>Verwendet wird der <strong>Notiztext</strong> (nicht der markierte Text).</div></div>
+            </div>
+          </div>
+
+          <div id="flashcardsProjectsList" class="flash-projects-list" aria-live="polite"></div>
+
+          <div class="add-actions">
+            <button id="btnFlashcardsBuild" class="btn" type="button">Stapel erstellen</button>
+          </div>
+        </div>
+
+        <div id="flashcardsStudyArea" class="flash-area" hidden>
+          <div class="flash-progress">
+            <div id="flashcardsProgress" class="flash-progress-text"></div>
+          </div>
+
+          <button id="flashcardCard" class="flash-card" type="button" aria-label="Karte aufdecken">
+            <div id="flashcardFront" class="flash-front"></div>
+            <div id="flashcardBack" class="flash-back" hidden></div>
+          </button>
+
+          <div id="flashcardsAnswerActions" class="flash-actions" hidden>
+            <button id="btnFlashcardWrong" class="btn btn-ghost" type="button">Falsch</button>
+            <button id="btnFlashcardRight" class="btn" type="button">Richtig</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="btnFlashcardsBack" class="btn btn-ghost" type="button">Zurück</button>
+        </div>
+      </div>
+    </section>
+
     <!-- Help View -->
     <section id="view-help" class="view" aria-label="Hilfe">
       <div class="view-inner">
@@ -273,6 +330,7 @@
               <div class="help-item"><span class="help-pill">Lesen</span><div>Zur Leseansicht wechseln.</div></div>
               <div class="help-item"><span class="help-pill">Projekte</span><div>Projektübersicht öffnen (anlegen/umbenennen/löschen).</div></div>
               <div class="help-item"><span class="help-pill">Markierungen</span><div>Liste aller Markierungen &amp; Notizen im aktuellen Projekt.</div></div>
+<div class="help-item"><span class="help-pill">Flashcards</span><div>Erzeugt einen Karteikarten-Stapel aus Notizen in ausgewählten Projekten (Format: <strong>Vorderseite} Rückseite</strong>).</div></div>
               <div class="help-item"><span class="help-pill">Neu</span><div>Neue Blocksammlung erstellen.</div></div>
               <div class="help-item"><span class="help-pill">Import</span><div>Excel importieren.</div></div>
               <div class="help-item"><span class="help-pill">Export</span><div>Aktuelles Projekt als Excel exportieren.</div></div>
@@ -302,6 +360,7 @@
       <button id="menuToReader" class="drawer-item primary" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5V5.5A2.5 2.5 0 0 1 6.5 3H20v18H6.5A2.5 2.5 0 0 0 4 23.5"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h6"/></svg></span><span class="drawer-text">Lesen</span></button>
       <button id="menuToProjects" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v9a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3Z"/><path d="M3 10h22"/></svg></span><span class="drawer-text">Projekte</span></button>
       <button id="menuToNotes" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></span><span class="drawer-text">Markierungen &amp; Notizen</span></button>
+<button id="menuToFlashcards" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h14v14H7z"/><path d="M3 3h14v14H3z"/></svg></span><span class="drawer-text">Flashcards</span></button>
       <button id="menuToAdd" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/><path d="M4 4h16v16H4z" /></svg></span><span class="drawer-text">Neue Blocksammlung</span></button>
       <button id="menuToImport" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10"/><path d="M8 9l4 4 4-4"/><path d="M4 17v3h16v-3"/></svg></span><span class="drawer-text">Import</span></button>
       <button id="menuExport" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V11"/><path d="M8 15l4-4 4 4"/><path d="M4 7V4h16v3"/></svg></span><span class="drawer-text">Export (Excel)</span></button>

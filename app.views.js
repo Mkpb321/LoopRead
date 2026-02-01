@@ -336,6 +336,12 @@
     const isStudy = mode === 'study';
     els.flashcardsSelectArea && (els.flashcardsSelectArea.hidden = isStudy);
     els.flashcardsStudyArea && (els.flashcardsStudyArea.hidden = !isStudy);
+
+    // Defensive: ensure grading UI never shows unless the current card is revealed.
+    if (isStudy) {
+      if (els.flashcardBack) els.flashcardBack.hidden = !state.flashcards.revealed;
+      if (els.flashcardsAnswerActions) els.flashcardsAnswerActions.hidden = !state.flashcards.revealed;
+    }
   }
 
   function selectedProjectSet() {

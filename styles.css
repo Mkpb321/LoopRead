@@ -213,7 +213,7 @@ body.tool-highlight-active select{
 }
 /* First text block content larger */
 .blocks .block:first-of-type .block-content{
-  font-size: 30px;
+  font-size: 35px;
   line-height: 1.65;
 }
 

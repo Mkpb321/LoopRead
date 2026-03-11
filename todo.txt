@@ -1,3 +1,7 @@
+man kann auch unten klicken um karte aufzudecken
+wenn karte aufgedeckt kann man diese notiz auch bearbeiten (für notes von esel)
+
+
 notizen kann man hinzufügen und anstreichen und toggeln ob man anstreichen sieht
 guter import
 ev wörter an analyse binden, koppeln

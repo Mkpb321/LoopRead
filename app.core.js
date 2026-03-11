@@ -71,7 +71,6 @@
     menuExport: document.getElementById('menuExport'),
     menuExportPdf: document.getElementById('menuExportPdf'),
     menuToDelete: document.getElementById('menuToDelete'),
-    menuToHide: document.getElementById('menuToHide'),
     menuToProjects: document.getElementById('menuToProjects'),
     menuToNotes: document.getElementById('menuToNotes'),
     menuToFlashcards: document.getElementById('menuToFlashcards'),

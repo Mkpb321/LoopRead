@@ -761,7 +761,6 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
     els.menuExport.addEventListener('click', () => { closeMenu(); exportAllAsXlsx(); });
     els.menuExportPdf?.addEventListener('click', () => { closeMenu(); exportCurrentProjectAsPdf(); });
     els.menuToDelete.addEventListener('click', () => { setView('delete'); closeMenu(); });
-    els.menuToHide.addEventListener('click', () => { setView('hide'); closeMenu(); });
     els.menuToNotes?.addEventListener('click', () => { setView('notes'); closeMenu(); });
     els.menuToFlashcards?.addEventListener('click', async () => { closeMenu(); await app.openFlashcardsEntry?.(); });
     els.menuToSettings?.addEventListener('click', () => { setView('settings'); closeMenu(); });

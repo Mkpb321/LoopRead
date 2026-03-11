@@ -36,6 +36,9 @@
     renderProjectsView,
     onProjectsListClick,
     createProjectFromUI,
+    openFontSizeDialog,
+    closeFontSizeDialog,
+    saveFontSizeDialog,
   } = app;
 
   // Swipe navigation (disabled when menu open)
@@ -761,6 +764,7 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
     els.menuToHide.addEventListener('click', () => { setView('hide'); closeMenu(); });
     els.menuToNotes?.addEventListener('click', () => { setView('notes'); closeMenu(); });
     els.menuToFlashcards?.addEventListener('click', async () => { closeMenu(); await app.openFlashcardsEntry?.(); });
+    els.menuToSettings?.addEventListener('click', () => { setView('settings'); closeMenu(); });
     els.menuToHelp?.addEventListener('click', () => { setView('help'); closeMenu(); });
 
     els.menuLogout.addEventListener('click', () => {
@@ -796,6 +800,12 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
 
     els.btnHideCancel.addEventListener('click', cancelHideDraft);
     els.btnNotesBack?.addEventListener('click', () => { setView('reader'); app.scrollTop(); });
+    els.btnSettingsBack?.addEventListener('click', () => { setView('reader'); app.scrollTop(); });
+    els.btnSettingsHideBlocks?.addEventListener('click', () => { setView('hide'); app.scrollTop(); });
+    els.btnSettingsFontSize?.addEventListener('click', openFontSizeDialog);
+    els.fontSizeOverlay?.addEventListener('click', () => closeFontSizeDialog());
+    els.fontSizeCancel?.addEventListener('click', () => closeFontSizeDialog());
+    els.fontSizeSave?.addEventListener('click', saveFontSizeDialog);
     els.btnHelpBack?.addEventListener('click', () => { setView('reader'); app.scrollTop(); });
 
     // Flashcards view
@@ -837,15 +847,17 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        if (state.fontSizeDialogOpen) { closeFontSizeDialog(); return; }
         if (state.confirmOpen) { closeConfirm(false); return; }
         if (!els.menuOverlay.hidden) { closeMenu(); return; }
       }
 
       const inReader = els.viewReader.classList.contains('view-active');
       const noteOpen = !!(els.markerNoteBox && els.markerNoteBox.classList && els.markerNoteBox.classList.contains('open'));
+      const fontSizeOpen = !!state.fontSizeDialogOpen;
 
       // Keyboard shortcuts only in reader view and only when no modal is open.
-      if (inReader && !state.menuOpen && !state.confirmOpen && !noteOpen) {
+      if (inReader && !state.menuOpen && !state.confirmOpen && !noteOpen && !fontSizeOpen) {
         if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
           const k = String(e.key || '').toLowerCase();
 
@@ -882,7 +894,7 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
       }
 
       // Reader navigation (disabled while marker note dialog is open)
-      if (inReader && !state.menuOpen && !noteOpen) {
+      if (inReader && !state.menuOpen && !noteOpen && !fontSizeOpen) {
         if (e.key === 'ArrowRight') gotoNext();
         if (e.key === 'ArrowLeft') gotoPrev();
       }
@@ -892,6 +904,7 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
   function init() {
     // Default: locked until auth says otherwise
     app.setAuthLocked(true);
+    app.applyReaderFontSizes?.(app.DEFAULT_READER_FONT_SIZES);
 
     // Default: highlight tool ON
     setHighlightToolEnabled(true);
@@ -906,6 +919,7 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
           state.uid = user.uid;
           app.setAuthLocked(false);
           try {
+            app.applyReaderFontSizes?.(app.loadLocalReaderFontSizes?.());
             await loadProjectsMeta();
             await loadState();
           } catch {
@@ -918,6 +932,7 @@ showToast(`Import erfolgreich: ${importedAll.length} Blocksammlung(en) aus ${she
           setHighlightToolEnabled(true);
         } else {
           state.uid = null;
+          app.closeFontSizeDialog?.(false);
           app.resetInMemoryState();
           renderNav();
           renderBlocks();

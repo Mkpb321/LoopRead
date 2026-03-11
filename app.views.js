@@ -31,7 +31,9 @@
     setActiveProject,
     createProject,
     renameProject,
-    updateProjectNameUI
+    updateProjectNameUI,
+    getReaderFontSizes,
+    setReaderFontSizes
   } = app;
 
   function renderNav() {
@@ -699,6 +701,64 @@
 
 
 
+  function renderSettingsView() {
+    const sizes = getReaderFontSizes?.() || { firstBlockPx: 35, otherBlocksPx: 14 };
+    if (els.settingsFontSizeSummary) {
+      els.settingsFontSizeSummary.textContent = `Erster sichtbarer Textblock: ${sizes.firstBlockPx} px · Weitere Textblöcke: ${sizes.otherBlocksPx} px`;
+    }
+  }
+
+  function openFontSizeDialog() {
+    if (!els.fontSizeBox || !els.fontSizeOverlay) return;
+
+    const sizes = getReaderFontSizes?.() || { firstBlockPx: 35, otherBlocksPx: 14 };
+    if (els.fontSizeFirstInput) els.fontSizeFirstInput.value = String(sizes.firstBlockPx);
+    if (els.fontSizeOtherInput) els.fontSizeOtherInput.value = String(sizes.otherBlocksPx);
+
+    state.fontSizeDialogOpen = true;
+    els.fontSizeOverlay.hidden = false;
+    els.fontSizeBox.classList.add('open');
+    els.fontSizeBox.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    try { els.fontSizeFirstInput?.focus(); } catch { /* ignore */ }
+  }
+
+  function closeFontSizeDialog(restoreFocus = true) {
+    if (!els.fontSizeBox || !els.fontSizeOverlay) return;
+
+    state.fontSizeDialogOpen = false;
+    els.fontSizeOverlay.hidden = true;
+    els.fontSizeBox.classList.remove('open');
+    els.fontSizeBox.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+
+    if (restoreFocus) {
+      try { els.btnSettingsFontSize?.focus(); } catch { /* ignore */ }
+    }
+  }
+
+  function saveFontSizeDialog() {
+    const first = Math.round(Number(els.fontSizeFirstInput?.value));
+    const other = Math.round(Number(els.fontSizeOtherInput?.value));
+
+    if (!Number.isFinite(first) || !Number.isFinite(other) || first < 8 || first > 96 || other < 8 || other > 96) {
+      showToast('Bitte gültige Schriftgrößen zwischen 8 und 96 eingeben.');
+      return;
+    }
+
+    setReaderFontSizes?.({
+      firstBlockPx: first,
+      otherBlocksPx: other,
+    });
+
+    renderSettingsView();
+    renderBlocks();
+    closeFontSizeDialog(false);
+    showToast('Schriftgröße gespeichert.');
+  }
+
+
   // --- Projects (top-level grouping) ---
   async function renderProjectsView() {
     if (!els.projectsList) return;
@@ -1283,18 +1343,18 @@ Dabei werden Sammlungen und Markierungen endgültig entfernt.`, 'Löschen', 'Abb
   }
 
   function applyHideDraft() {
-    if (!hideDraft) { setView('reader'); scrollTop(); return; }
+    if (!hideDraft) { setView('settings'); scrollTop(); return; }
     setHiddenBlocks(Array.from(hideDraft.hidden));
     saveState();
     renderBlocks();
     clearHideDraft();
-    setView('reader');
+    setView('settings');
     scrollTop();
   }
 
   function cancelHideDraft() {
     clearHideDraft();
-    setView('reader');
+    setView('settings');
     scrollTop();
   }
 
@@ -1324,6 +1384,7 @@ Dabei werden Sammlungen und Markierungen endgültig entfernt.`, 'Löschen', 'Abb
     els.viewNotes?.classList.toggle('view-active', view === 'notes');
     els.viewHelp?.classList.toggle('view-active', view === 'help');
     els.viewFlashcards?.classList.toggle('view-active', view === 'flashcards');
+    els.viewSettings?.classList.toggle('view-active', view === 'settings');
 
     const hasCollections = state.collections.length > 0;
     const inReader = (view === 'reader');
@@ -1349,6 +1410,11 @@ Dabei werden Sammlungen und Markierungen endgültig entfernt.`, 'Löschen', 'Abb
 
     if (view === 'flashcards') {
       renderFlashcardsView();
+    }
+
+    if (view === 'settings') {
+      renderSettingsView();
+      els.btnSettingsHideBlocks?.focus();
     }
 
     // Do not change active tool state when leaving reader; it should restore when returning.
@@ -1414,6 +1480,11 @@ Dabei werden Sammlungen und Markierungen endgültig entfernt.`, 'Löschen', 'Abb
   app.renderNotesView = renderNotesView;
   app.onNotesListClick = onNotesListClick;
   // Flashcards
+  app.renderSettingsView = renderSettingsView;
+  app.openFontSizeDialog = openFontSizeDialog;
+  app.closeFontSizeDialog = closeFontSizeDialog;
+  app.saveFontSizeDialog = saveFontSizeDialog;
+
   app.renderFlashcardsView = renderFlashcardsView;
   app.openFlashcardsEntry = openFlashcardsEntry;
   app.buildFlashcardsStackFromSelection = buildFlashcardsStackFromSelection;

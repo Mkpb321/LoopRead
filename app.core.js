@@ -27,6 +27,7 @@
     viewNotes: document.getElementById('view-notes'),
     viewHelp: document.getElementById('view-help'),
     viewFlashcards: document.getElementById('view-flashcards'),
+    viewSettings: document.getElementById('view-settings'),
 
     editors: document.getElementById('editors'),
     addForm: document.getElementById('addForm'),
@@ -74,6 +75,7 @@
     menuToProjects: document.getElementById('menuToProjects'),
     menuToNotes: document.getElementById('menuToNotes'),
     menuToFlashcards: document.getElementById('menuToFlashcards'),
+    menuToSettings: document.getElementById('menuToSettings'),
     menuToHelp: document.getElementById('menuToHelp'),
 
     // menuClearAll intentionally removed (no "Alle Daten löschen" anymore)
@@ -106,6 +108,12 @@
     markerNoteDelete: document.getElementById('markerNoteDelete'),
     markerNoteCancel: document.getElementById('markerNoteCancel'),
 
+    fontSizeOverlay: document.getElementById('fontSizeOverlay'),
+    fontSizeBox: document.getElementById('fontSizeBox'),
+    fontSizeFirstInput: document.getElementById('fontSizeFirstInput'),
+    fontSizeOtherInput: document.getElementById('fontSizeOtherInput'),
+    fontSizeSave: document.getElementById('fontSizeSave'),
+    fontSizeCancel: document.getElementById('fontSizeCancel'),
 
     // Flashcards
     flashcardsSubtitle: document.getElementById('flashcardsSubtitle'),
@@ -114,6 +122,12 @@
     flashcardsProjectsList: document.getElementById('flashcardsProjectsList'),
     btnFlashcardsBuild: document.getElementById('btnFlashcardsBuild'),
     btnFlashcardsBack: document.getElementById('btnFlashcardsBack'),
+
+    // Settings
+    btnSettingsHideBlocks: document.getElementById('btnSettingsHideBlocks'),
+    btnSettingsFontSize: document.getElementById('btnSettingsFontSize'),
+    btnSettingsBack: document.getElementById('btnSettingsBack'),
+    settingsFontSizeSummary: document.getElementById('settingsFontSizeSummary'),
 
     flashcardsProgress: document.getElementById('flashcardsProgress'),
     flashcardCard: document.getElementById('flashcardCard'),
@@ -156,6 +170,8 @@
     activeView: 'reader',
     highlightToolEnabled: false,
     markerToolEnabled: false,
+    fontSizeDialogOpen: false,
+    readerFontSizes: { firstBlockPx: 35, otherBlocksPx: 14 },
 
     // Auth / multi-project
     uid: null,
@@ -378,6 +394,40 @@
     try { return JSON.parse(jsonStr); } catch { return fallback; }
   }
 
+const DEFAULT_READER_FONT_SIZES = Object.freeze({
+  firstBlockPx: 35,
+  otherBlocksPx: 14,
+});
+
+function normalizeReaderFontSizes(value) {
+  const rawFirst = Number(value?.firstBlockPx);
+  const rawOther = Number(value?.otherBlocksPx);
+
+  const firstBlockPx = Number.isFinite(rawFirst)
+    ? Math.max(8, Math.min(96, Math.round(rawFirst)))
+    : DEFAULT_READER_FONT_SIZES.firstBlockPx;
+
+  const otherBlocksPx = Number.isFinite(rawOther)
+    ? Math.max(8, Math.min(96, Math.round(rawOther)))
+    : DEFAULT_READER_FONT_SIZES.otherBlocksPx;
+
+  return { firstBlockPx, otherBlocksPx };
+}
+
+function getReaderFontSizes() {
+  return normalizeReaderFontSizes(state.readerFontSizes);
+}
+
+function applyReaderFontSizes(sizes) {
+  const next = normalizeReaderFontSizes(sizes);
+  state.readerFontSizes = next;
+
+  document.documentElement.style.setProperty('--reader-font-size-first', `${next.firstBlockPx}px`);
+  document.documentElement.style.setProperty('--reader-font-size-other', `${next.otherBlocksPx}px`);
+
+  return next;
+}
+
 
 // --- Local UI persistence (per browser, per user, per project) ---
 // Stored locally by design:
@@ -402,6 +452,30 @@ function safeLocalSet(key, value) {
 
 function safeLocalRemove(key) {
   try { localStorage.removeItem(key); } catch {}
+}
+
+function keyReaderFontSizes() {
+  if (!state.uid) return null;
+  return lsKey('uid', state.uid, 'readerFontSizes');
+}
+
+function loadLocalReaderFontSizes() {
+  const k = keyReaderFontSizes();
+  if (!k) return normalizeReaderFontSizes(DEFAULT_READER_FONT_SIZES);
+  const parsed = safeParse(safeLocalGet(k), DEFAULT_READER_FONT_SIZES);
+  return normalizeReaderFontSizes(parsed);
+}
+
+function persistLocalReaderFontSizes(sizes) {
+  const k = keyReaderFontSizes();
+  if (!k) return;
+  safeLocalSet(k, JSON.stringify(normalizeReaderFontSizes(sizes)));
+}
+
+function setReaderFontSizes(sizes) {
+  const next = applyReaderFontSizes(sizes);
+  persistLocalReaderFontSizes(next);
+  return next;
 }
 
 function keyActiveProjectId() {
@@ -1155,6 +1229,7 @@ function saveState() {
       els.viewProjects?.classList.remove('view-active');
       els.viewNotes?.classList.remove('view-active');
       els.viewHelp?.classList.remove('view-active');
+      els.viewSettings?.classList.remove('view-active');
     }
   }
 
@@ -1167,6 +1242,7 @@ function saveState() {
     state.pendingMarkerFocusId = null;
     state.notesExpandedMarkerId = null;
     setHiddenBlocks([]);
+    applyReaderFontSizes(DEFAULT_READER_FONT_SIZES);
 
     if (typeof app.clearHighlights === 'function') app.clearHighlights();
     if (typeof app.setHighlightToolEnabled === 'function') app.setHighlightToolEnabled(false);
@@ -1182,6 +1258,7 @@ function saveState() {
   app.state = state;
 
   app.safeParse = safeParse;
+  app.DEFAULT_READER_FONT_SIZES = DEFAULT_READER_FONT_SIZES;
 
   app.normalizeHiddenBlocks = normalizeHiddenBlocks;
   app.setHiddenBlocks = setHiddenBlocks;
@@ -1200,6 +1277,12 @@ function saveState() {
 
   app.showConfirm = showConfirm;
   app.closeConfirm = closeConfirm;
+
+  app.getReaderFontSizes = getReaderFontSizes;
+  app.applyReaderFontSizes = applyReaderFontSizes;
+  app.loadLocalReaderFontSizes = loadLocalReaderFontSizes;
+  app.persistLocalReaderFontSizes = persistLocalReaderFontSizes;
+  app.setReaderFontSizes = setReaderFontSizes;
 
   app.loadProjectsMeta = loadProjectsMeta;
   app.getProjectById = getProjectById;

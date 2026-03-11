@@ -12,7 +12,7 @@
 
   --pad: 12px;
   --tap: 34px;
-  --reader-font-size-first: 35px;
+  --reader-font-size-first: 30px;
   --reader-font-size-other: 14px;
 }
 
@@ -215,7 +215,7 @@ body.tool-highlight-active select{
 }
 /* First text block content larger */
 .blocks .block:first-of-type .block-content{
-  font-size: var(--reader-font-size-first, 35px);
+  font-size: var(--reader-font-size-first, 30px);
   line-height: 1.65;
 }
 
@@ -670,6 +670,7 @@ body.auth-locked .overlay{
   display: grid;
   gap: 10px;
   margin-top: 10px;
+  margin-bottom: 18px;
 }
 
 .settings-item{

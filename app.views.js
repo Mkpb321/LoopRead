@@ -742,8 +742,8 @@
     const first = Math.round(Number(els.fontSizeFirstInput?.value));
     const other = Math.round(Number(els.fontSizeOtherInput?.value));
 
-    if (!Number.isFinite(first) || !Number.isFinite(other) || first < 8 || first > 96 || other < 8 || other > 96) {
-      showToast('Bitte gültige Schriftgrößen zwischen 8 und 96 eingeben.');
+    if (!Number.isFinite(first) || !Number.isFinite(other) || first <= 0 || other <= 0) {
+      showToast('Bitte gültige Schriftgrößen größer als 0 eingeben.');
       return;
     }
 

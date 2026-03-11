@@ -78,10 +78,10 @@
     <div class="note-sub">Die Werte werden lokal in diesem Browser gespeichert.</div>
 
     <label class="font-size-field" for="fontSizeFirstInput">Erster sichtbarer Textblock</label>
-    <input id="fontSizeFirstInput" class="input" type="number" inputmode="numeric" min="8" max="96" step="1" />
+    <input id="fontSizeFirstInput" class="input" type="number" inputmode="numeric" step="1" />
 
     <label class="font-size-field" for="fontSizeOtherInput">Weitere Textblöcke</label>
-    <input id="fontSizeOtherInput" class="input" type="number" inputmode="numeric" min="8" max="96" step="1" />
+    <input id="fontSizeOtherInput" class="input" type="number" inputmode="numeric" step="1" />
 
     <div class="note-actions">
       <button id="fontSizeCancel" class="btn btn-ghost" type="button">Abbrechen</button>
@@ -306,7 +306,7 @@
           <button id="btnSettingsFontSize" class="settings-item" type="button">
             <span class="settings-item-main">
               <span class="settings-item-title">Schriftgröße</span>
-              <span id="settingsFontSizeSummary" class="settings-item-sub">Erster sichtbarer Textblock: 35 px · Weitere Textblöcke: 14 px</span>
+              <span id="settingsFontSizeSummary" class="settings-item-sub">Erster sichtbarer Textblock: 30 px · Weitere Textblöcke: 14 px</span>
             </span>
             <span class="settings-item-arrow" aria-hidden="true">›</span>
           </button>
@@ -414,7 +414,7 @@
       <button id="menuToImport" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10"/><path d="M8 9l4 4 4-4"/><path d="M4 17v3h16v-3"/></svg></span><span class="drawer-text">Import</span></button>
       <button id="menuExport" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V11"/><path d="M8 15l4-4 4 4"/><path d="M4 7V4h16v3"/></svg></span><span class="drawer-text">Export (Excel)</span></button>
       <button id="menuExportPdf" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></span><span class="drawer-text">Export (PDF)</span></button>
-      <button id="menuToSettings" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5A3.5 3.5 0 1 0 12 15.5A3.5 3.5 0 1 0 12 8.5Z"/><path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a1 1 0 0 1 0 1.4l-1.3 1.3a1 1 0 0 1-1.4 0l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a1 1 0 0 1-1 1h-1.8a1 1 0 0 1-1-1v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a1 1 0 0 1-1.4 0L4.3 17.9a1 1 0 0 1 0-1.4l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H3.5a1 1 0 0 1-1-1v-1.8a1 1 0 0 1 1-1h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a1 1 0 0 1 0-1.4l1.3-1.3a1 1 0 0 1 1.4 0l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a1 1 0 0 1 1-1h1.8a1 1 0 0 1 1 1v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a1 1 0 0 1 1.4 0l1.3 1.3a1 1 0 0 1 0 1.4l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6h.2a1 1 0 0 1 1 1v1.8a1 1 0 0 1-1 1h-.2a1 1 0 0 0-.9.6Z"/></svg></span><span class="drawer-text">Einstellungen</span></button>
+      <button id="menuToSettings" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h10"/><path d="M4 17h7"/><circle cx="17" cy="7" r="2"/><circle cx="14" cy="12" r="2"/><circle cx="13" cy="17" r="2"/></svg></span><span class="drawer-text">Einstellungen</span></button>
       <button id="menuToDelete" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 16h10l1-16"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></span><span class="drawer-text">Sammlungen löschen</span></button>
       <button id="menuToHelp" class="drawer-item" type="button"><span class="drawer-icon"><svg class="drawer-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18h.01"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"/><path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"/></svg></span><span class="drawer-text">Hilfe</span></button>
 <div class="drawer-sep" role="separator" aria-hidden="true"></div>

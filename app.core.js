@@ -170,7 +170,7 @@
     highlightToolEnabled: false,
     markerToolEnabled: false,
     fontSizeDialogOpen: false,
-    readerFontSizes: { firstBlockPx: 35, otherBlocksPx: 14 },
+    readerFontSizes: { firstBlockPx: 30, otherBlocksPx: 14 },
 
     // Auth / multi-project
     uid: null,
@@ -394,7 +394,7 @@
   }
 
 const DEFAULT_READER_FONT_SIZES = Object.freeze({
-  firstBlockPx: 35,
+  firstBlockPx: 30,
   otherBlocksPx: 14,
 });
 
@@ -402,12 +402,12 @@ function normalizeReaderFontSizes(value) {
   const rawFirst = Number(value?.firstBlockPx);
   const rawOther = Number(value?.otherBlocksPx);
 
-  const firstBlockPx = Number.isFinite(rawFirst)
-    ? Math.max(8, Math.min(96, Math.round(rawFirst)))
+  const firstBlockPx = Number.isFinite(rawFirst) && rawFirst > 0
+    ? Math.round(rawFirst)
     : DEFAULT_READER_FONT_SIZES.firstBlockPx;
 
-  const otherBlocksPx = Number.isFinite(rawOther)
-    ? Math.max(8, Math.min(96, Math.round(rawOther)))
+  const otherBlocksPx = Number.isFinite(rawOther) && rawOther > 0
+    ? Math.round(rawOther)
     : DEFAULT_READER_FONT_SIZES.otherBlocksPx;
 
   return { firstBlockPx, otherBlocksPx };

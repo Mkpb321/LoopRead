@@ -209,41 +209,42 @@ body.tool-highlight-active select{
 }
 
 .block-visibility-toggle{
-  margin: 3px 6px 3px 10px;
+  margin: 4px 8px 4px 12px;
   flex: 0 0 auto;
   width: 16px;
   min-width: 16px;
   height: 16px;
   padding: 0;
-  border: 1px solid #9d9d9d;
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: #bdbdbd;
+  background: var(--btn);
   color: transparent;
   font-size: 0;
   line-height: 0;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.45);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
   transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .06s ease;
 }
 
 .block-visibility-toggle[data-hidden="true"]{
-  background: #8f8f8f;
-  border-color: #7f7f7f;
+  background: #cfd7f5;
+  border-color: #b7c1e5;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
 }
 
 .block-visibility-toggle:hover{
-  background: #b2b2b2;
+  background: #d7def7;
 }
 
 .block-visibility-toggle[data-hidden="true"]:hover{
-  background: #888888;
+  background: #c7d0f1;
 }
 
 .block-visibility-toggle:focus-visible{
   outline: none;
-  box-shadow: 0 0 0 2px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.35);
+  box-shadow: 0 0 0 2px rgba(79,70,229,.14), inset 0 1px 0 rgba(255,255,255,.4);
 }
 
 .block-visibility-toggle:active{ transform: translateY(1px) scale(.97); }

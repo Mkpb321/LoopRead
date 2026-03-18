@@ -209,25 +209,44 @@ body.tool-highlight-active select{
 }
 
 .block-visibility-toggle{
-  margin-left: auto;
+  margin: 3px 6px 3px 10px;
   flex: 0 0 auto;
   width: 16px;
   min-width: 16px;
   height: 16px;
   padding: 0;
-  border: 1px solid var(--line);
-  background: var(--btn);
-  color: var(--fg);
+  border: 1px solid #9d9d9d;
+  border-radius: 999px;
+  background: #bdbdbd;
+  color: transparent;
   font-size: 0;
   line-height: 0;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45);
+  transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .06s ease;
 }
 
 .block-visibility-toggle[data-hidden="true"]{
-  background: var(--fg);
+  background: #8f8f8f;
+  border-color: #7f7f7f;
 }
 
-.block-visibility-toggle:active{ transform: translateY(1px); }
+.block-visibility-toggle:hover{
+  background: #b2b2b2;
+}
+
+.block-visibility-toggle[data-hidden="true"]:hover{
+  background: #888888;
+}
+
+.block-visibility-toggle:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.35);
+}
+
+.block-visibility-toggle:active{ transform: translateY(1px) scale(.97); }
 
 .block-content.is-project-hidden,
 .block-content.is-project-hidden *{

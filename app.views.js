@@ -64,16 +64,16 @@
       return;
     }
 
-    let shown = 0;
-
     blocks.forEach((b, i) => {
-      if (isBlockHidden(i)) return;
-      shown++;
+      const hidden = i > 0 && isBlockHidden(i);
+
       const article = document.createElement('article');
       article.className = 'block';
+      if (hidden) article.classList.add('block-text-hidden');
 
       const content = document.createElement('div');
       content.className = 'block-content';
+      if (hidden) content.classList.add('is-project-hidden');
       content.innerHTML = formatContent((b.content || '').trim());
       wrapWordsInElement(content);
       // assign stable token indices for marker spans (per block)
@@ -91,6 +91,25 @@
       titleLabel.textContent = (b.title || '').trim() || `Block ${i + 1}`;
       footer.appendChild(titleLabel);
 
+      if (i > 0) {
+        const toggle = document.createElement('button');
+        toggle.className = 'block-visibility-toggle';
+        toggle.type = 'button';
+        toggle.dataset.blockIndex = String(i);
+        toggle.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+        toggle.setAttribute('aria-label', hidden ? `Textblock ${i + 1} einblenden` : `Textblock ${i + 1} ausblenden`);
+        toggle.textContent = hidden ? 'Einblenden' : 'Ausblenden';
+        toggle.addEventListener('click', () => {
+          const nextHidden = new Set(state.hiddenBlocks || []);
+          if (nextHidden.has(i)) nextHidden.delete(i);
+          else nextHidden.add(i);
+          setHiddenBlocks(Array.from(nextHidden));
+          saveState();
+          renderBlocks();
+        });
+        footer.appendChild(toggle);
+      }
+
       const sep = document.createElement('div');
       sep.className = 'block-sep';
 
@@ -100,14 +119,6 @@
 
       els.blocksContainer.appendChild(article);
     });
-
-    if (shown === 0) {
-      const div = document.createElement('div');
-      div.className = 'empty';
-      div.textContent = 'Alle Textblöcke dieser Sammlung sind ausgeblendet.';
-      els.blocksContainer.appendChild(div);
-      return;
-    }
 
     applyAllHighlights();
     applyAllMarkers?.();

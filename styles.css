@@ -202,8 +202,32 @@ body.tool-highlight-active select{
 /* Blocktitel (unten rechts) – dezent, ohne Rahmen */
 .block-footer{
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
   padding: 0 1px 0px 6px; /* weniger Abstand zum Rand */
+}
+
+.block-visibility-toggle{
+  margin-left: auto;
+  min-width: 98px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  background: var(--btn);
+  color: var(--fg);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.block-visibility-toggle:active{ transform: translateY(1px); }
+
+.block-content.is-project-hidden,
+.block-content.is-project-hidden *{
+  color: transparent !important;
+  text-decoration-color: transparent !important;
+  text-shadow: none !important;
 }
 
 .block-title-label{

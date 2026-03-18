@@ -1,3 +1,5 @@
+excel laden resettet fontsize
+
 man kann auch unten klicken um karte aufzudecken
 wenn karte aufgedeckt kann man diese notiz auch bearbeiten (für notes von esel)
 

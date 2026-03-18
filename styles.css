@@ -210,15 +210,21 @@ body.tool-highlight-active select{
 
 .block-visibility-toggle{
   margin-left: auto;
-  min-width: 98px;
-  height: 26px;
-  padding: 0 8px;
+  flex: 0 0 auto;
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0;
   border: 1px solid var(--line);
   background: var(--btn);
   color: var(--fg);
-  font-size: 11px;
-  line-height: 1;
+  font-size: 0;
+  line-height: 0;
   cursor: pointer;
+}
+
+.block-visibility-toggle[data-hidden="true"]{
+  background: var(--fg);
 }
 
 .block-visibility-toggle:active{ transform: translateY(1px); }

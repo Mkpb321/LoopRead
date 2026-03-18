@@ -98,7 +98,8 @@
         toggle.dataset.blockIndex = String(i);
         toggle.setAttribute('aria-pressed', hidden ? 'true' : 'false');
         toggle.setAttribute('aria-label', hidden ? `Textblock ${i + 1} einblenden` : `Textblock ${i + 1} ausblenden`);
-        toggle.textContent = hidden ? 'Einblenden' : 'Ausblenden';
+        toggle.textContent = '';
+        toggle.dataset.hidden = hidden ? 'true' : 'false';
         toggle.addEventListener('click', () => {
           const nextHidden = new Set(state.hiddenBlocks || []);
           if (nextHidden.has(i)) nextHidden.delete(i);

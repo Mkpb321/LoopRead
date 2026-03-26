@@ -203,51 +203,23 @@ body.tool-highlight-active select{
 .block-footer{
   display: flex;
   align-items: center;
-  gap: 8px;
-  justify-content: space-between;
-  padding: 0 1px 0px 6px; /* weniger Abstand zum Rand */
+  justify-content: flex-end;
+  padding: 0 6px 0px 6px;
 }
 
-.block-visibility-toggle{
-  margin: 4px 8px 4px 12px;
-  flex: 0 0 auto;
-  width: 16px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--btn);
-  color: transparent;
-  font-size: 0;
-  line-height: 0;
+.block-toggleable{
   cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
-  transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .06s ease;
 }
 
-.block-visibility-toggle[data-hidden="true"]{
-  background: #cfd7f5;
-  border-color: #b7c1e5;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
+.block-toggleable:focus-visible{
+  outline: 2px solid var(--line);
+  outline-offset: -2px;
 }
 
-.block-visibility-toggle:hover{
-  background: #d7def7;
+.block-toggleable .block-footer,
+.block-toggleable .block-title-label{
+  cursor: pointer;
 }
-
-.block-visibility-toggle[data-hidden="true"]:hover{
-  background: #c7d0f1;
-}
-
-.block-visibility-toggle:focus-visible{
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(79,70,229,.14), inset 0 1px 0 rgba(255,255,255,.4);
-}
-
-.block-visibility-toggle:active{ transform: translateY(1px) scale(.97); }
 
 .block-content.is-project-hidden,
 .block-content.is-project-hidden *{

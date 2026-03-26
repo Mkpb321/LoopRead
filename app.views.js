@@ -41,6 +41,30 @@
     els.navIndex.textContent = n === 0 ? '0/0' : `${state.currentIndex + 1}/${n}`;
   }
 
+  function toggleBlockTransparency(blockIndex) {
+    if (!Number.isFinite(blockIndex) || blockIndex <= 0) return;
+
+    const nextHidden = new Set(state.hiddenBlocks || []);
+    if (nextHidden.has(blockIndex)) nextHidden.delete(blockIndex);
+    else nextHidden.add(blockIndex);
+
+    setHiddenBlocks(Array.from(nextHidden));
+    saveState();
+    renderBlocks();
+  }
+
+  function shouldIgnoreBlockTransparencyClick(target) {
+    const el = (target && target.nodeType === Node.ELEMENT_NODE) ? target : target?.parentElement;
+    if (!el) return false;
+
+    if (el.closest('button, a, input, textarea, select, option, label')) return true;
+
+    const token = el.closest('.word-token');
+    if (token && (state.highlightToolEnabled || state.markerToolEnabled)) return true;
+
+    return false;
+  }
+
   function renderBlocks() {
     els.blocksContainer.innerHTML = '';
 
@@ -71,6 +95,25 @@
       article.className = 'block';
       if (hidden) article.classList.add('block-text-hidden');
 
+      if (i > 0) {
+        article.classList.add('block-toggleable');
+        article.dataset.blockIndex = String(i);
+        article.dataset.hidden = hidden ? 'true' : 'false';
+        article.tabIndex = 0;
+        article.setAttribute('role', 'button');
+        article.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+        article.setAttribute('aria-label', hidden ? `Textblock ${i + 1} einblenden` : `Textblock ${i + 1} transparent machen`);
+        article.addEventListener('click', (e) => {
+          if (shouldIgnoreBlockTransparencyClick(e.target)) return;
+          toggleBlockTransparency(i);
+        });
+        article.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          toggleBlockTransparency(i);
+        });
+      }
+
       const content = document.createElement('div');
       content.className = 'block-content';
       if (hidden) content.classList.add('is-project-hidden');
@@ -90,26 +133,6 @@
       titleLabel.className = 'block-title-label';
       titleLabel.textContent = (b.title || '').trim() || `Block ${i + 1}`;
       footer.appendChild(titleLabel);
-
-      if (i > 0) {
-        const toggle = document.createElement('button');
-        toggle.className = 'block-visibility-toggle';
-        toggle.type = 'button';
-        toggle.dataset.blockIndex = String(i);
-        toggle.setAttribute('aria-pressed', hidden ? 'true' : 'false');
-        toggle.setAttribute('aria-label', hidden ? `Textblock ${i + 1} einblenden` : `Textblock ${i + 1} ausblenden`);
-        toggle.textContent = '';
-        toggle.dataset.hidden = hidden ? 'true' : 'false';
-        toggle.addEventListener('click', () => {
-          const nextHidden = new Set(state.hiddenBlocks || []);
-          if (nextHidden.has(i)) nextHidden.delete(i);
-          else nextHidden.add(i);
-          setHiddenBlocks(Array.from(nextHidden));
-          saveState();
-          renderBlocks();
-        });
-        footer.appendChild(toggle);
-      }
 
       const sep = document.createElement('div');
       sep.className = 'block-sep';
